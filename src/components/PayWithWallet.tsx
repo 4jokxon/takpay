@@ -33,6 +33,26 @@ function buildTransferCalldata(to: string, amount: number) {
   return `${TRANSFER_SELECTOR}${padAddress(to)}${padUint(amountToUsdcUnits(amount))}`;
 }
 
+function buildBalanceOfCalldata(account: string) {
+  return `0x70a08231${padAddress(account)}`;
+}
+
+function formatUsdc(units: bigint) {
+  const divisor = BigInt(10 ** ARC_USDC.decimals);
+  const whole = units / divisor;
+  const fraction = units % divisor;
+  const fractionText = fraction.toString().padStart(ARC_USDC.decimals, "0").replace(/0+$/, "");
+  return fractionText ? `${whole}.${fractionText}` : whole.toString();
+}
+
+function humanWalletError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "Payment cancelled or failed.");
+  if (message.toLowerCase().includes("user rejected")) return "Payment cancelled in wallet.";
+  if (message.toLowerCase().includes("exceeds balance")) return "Insufficient USDC balance for this invoice.";
+  if (message.toLowerCase().includes("reverted")) return "Transaction reverted. Check USDC balance and recipient details.";
+  return message;
+}
+
 function txStatusKey(invoiceId: string) {
   return `takpay:${invoiceId}:paidTx`;
 }
@@ -40,6 +60,7 @@ function txStatusKey(invoiceId: string) {
 export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   const [account, setAccount] = useState<string>("");
   const [chainId, setChainId] = useState<string>("");
+  const [balance, setBalance] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return window.localStorage.getItem(txStatusKey(invoice.id)) ?? "";
@@ -64,9 +85,11 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
     const handleAccountsChanged = (accounts: unknown) => {
       const next = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
       setAccount(next);
+      setBalance(null);
     };
     const handleChainChanged = (nextChainId: unknown) => {
       if (typeof nextChainId === "string") setChainId(nextChainId);
+      setBalance(null);
     };
 
     window.ethereum.on?.("accountsChanged", handleAccountsChanged);
@@ -80,6 +103,28 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
       window.ethereum?.removeListener?.("chainChanged", handleChainChanged);
     };
   }, []);
+
+  async function refreshBalance(nextAccount = account) {
+    if (!window.ethereum || !nextAccount || !isArc) {
+      setBalance(null);
+      return null;
+    }
+
+    const result = (await window.ethereum.request({
+      method: "eth_call",
+      params: [
+        {
+          to: ARC_USDC.address,
+          data: buildBalanceOfCalldata(nextAccount),
+        },
+        "latest",
+      ],
+    })) as string;
+
+    const nextBalance = BigInt(result);
+    setBalance(nextBalance);
+    return nextBalance;
+  }
 
   async function connectWallet() {
     if (!window.ethereum) {
@@ -95,7 +140,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
     const currentChain = (await window.ethereum.request({ method: "eth_chainId" })) as string;
     setChainId(currentChain);
     setStatus("idle");
-    setMessage("Wallet connected. Switch to Arc testnet to continue.");
+    setMessage(currentChain.toLowerCase() === ARC_TESTNET.chainIdHex ? "Wallet connected. Ready to check balance and pay." : "Wallet connected. Switch to Arc testnet to continue.");
   }
 
   async function switchToArc() {
@@ -130,6 +175,33 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
     setMessage("Arc testnet selected. Ready to send USDC.");
   }
 
+  useEffect(() => {
+    if (!account || !isArc || !window.ethereum) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = (await window.ethereum?.request({
+          method: "eth_call",
+          params: [
+            {
+              to: ARC_USDC.address,
+              data: buildBalanceOfCalldata(account),
+            },
+            "latest",
+          ],
+        })) as string | undefined;
+        if (!cancelled && result) setBalance(BigInt(result));
+      } catch {
+        if (!cancelled) setBalance(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account, isArc]);
+
   async function pay() {
     if (!window.ethereum) return;
     if (!account) {
@@ -143,6 +215,16 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
 
     try {
       setStatus("sending");
+      setMessage("Checking USDC balance...");
+      const currentBalance = await refreshBalance(account);
+      const requiredAmount = amountToUsdcUnits(invoice.amount);
+
+      if (currentBalance !== null && currentBalance < requiredAmount) {
+        setStatus("error");
+        setMessage(`Insufficient USDC balance. Need ${invoice.amount.toFixed(2)} USDC, you have ${formatUsdc(currentBalance)} USDC.`);
+        return;
+      }
+
       setMessage(`Sending ${invoice.amount.toFixed(2)} ${invoice.currency} to ${shortAddress(invoice.recipient)}...`);
 
       const hash = (await window.ethereum.request({
@@ -172,16 +254,15 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
           setMessage("Payment confirmed. Invoice marked paid.");
           return;
         }
-        if (receipt?.status === "0x0") throw new Error("Transaction reverted");
+        if (receipt?.status === "0x0") throw new Error("Transaction reverted. The most common cause is insufficient ERC-20 USDC balance.");
         await new Promise((resolve) => window.setTimeout(resolve, 800));
       }
 
       setStatus("confirming");
       setMessage("Transaction submitted but receipt is still pending. Check explorer.");
     } catch (error) {
-      const reason = error instanceof Error ? error.message : "Payment cancelled or failed.";
       setStatus("error");
-      setMessage(reason);
+      setMessage(humanWalletError(error));
     }
   }
 
@@ -195,6 +276,10 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
         <div className="mt-2 flex items-center justify-between gap-4">
           <span>Network</span>
           <span className={isArc ? "text-emerald-300" : "text-amber-300"}>{isArc ? ARC_TESTNET.name : chainId || "Unknown"}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-4">
+          <span>USDC balance</span>
+          <span className="font-mono text-zinc-100">{balance === null ? "—" : `${formatUsdc(balance)} USDC`}</span>
         </div>
       </div>
 

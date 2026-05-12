@@ -27,9 +27,9 @@ export const ARC_USDC = {
 export const demoInvoices: Invoice[] = [
   {
     id: "TK-1001",
-    amount: 50,
+    amount: 0.1,
     currency: "USDC",
-    memo: "Design sprint deposit",
+    memo: "Testnet checkout demo",
     recipient: "0xcEe2244B58Af2C8ddCa97A4aED0b819C5Fcb6910",
     status: "pending",
     createdAt: new Date().toISOString(),
