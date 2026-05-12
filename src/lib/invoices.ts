@@ -13,9 +13,15 @@ export type Invoice = {
 export const ARC_TESTNET = {
   name: "Arc Testnet",
   chainId: 5042002,
-  rpcUrl: "https://rpc-testnet.arc.network",
+  chainIdHex: "0x4cef52",
+  rpcUrl: "https://rpc.testnet.arc.network",
   explorerUrl: "https://testnet.arcscan.app",
   nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+};
+
+export const ARC_USDC = {
+  address: "0x3600000000000000000000000000000000000000",
+  decimals: 6,
 };
 
 export const demoInvoices: Invoice[] = [

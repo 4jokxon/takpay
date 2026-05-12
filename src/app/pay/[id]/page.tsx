@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ARC_TESTNET, demoInvoices, shortAddress } from "@/lib/invoices";
 import { CopyButton } from "@/components/CopyButton";
+import { PayWithWallet } from "@/components/PayWithWallet";
 
 function QrPlaceholder() {
   return (
@@ -74,8 +75,7 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
                   <CopyButton value={paymentUri} label="Copy payment URI" />
                 </div>
               </div>
-              <button className="mt-5 w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black transition hover:bg-emerald-300">Pay with wallet</button>
-              <p className="mt-4 text-center text-sm text-zinc-500">Wallet connect and transaction monitoring are next phase.</p>
+              <PayWithWallet invoice={invoice} />
             </div>
           </div>
         </section>

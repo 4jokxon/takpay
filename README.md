@@ -10,6 +10,10 @@ TakPay is a crypto-native payment-link MVP for USDC-native invoices on Arc testn
 - Demo invoice dashboard
 - Public checkout route: `/pay/TK-1001`
 - Arc testnet metadata
+- Injected EVM wallet connection
+- Add/switch Arc testnet in wallet
+- Send Arc USDC via ERC-20 transfer
+- Poll transaction receipt and mark invoice paid locally
 - Copyable recipient address and payment URI
 - Demo invoice state: pending/paid
 
