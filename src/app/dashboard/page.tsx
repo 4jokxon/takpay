@@ -4,6 +4,8 @@ import { CopyButton } from "@/components/CopyButton";
 import { listInvoices } from "@/lib/db-invoices";
 import { demoInvoices, invoiceUrl, shortAddress } from "@/lib/invoices";
 
+export const dynamic = "force-dynamic";
+
 export default async function Dashboard() {
   const { invoices, usingFallback, error } = await listInvoices();
   const defaultRecipient = invoices[0]?.recipient ?? demoInvoices[0].recipient;

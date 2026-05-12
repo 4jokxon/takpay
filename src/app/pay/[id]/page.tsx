@@ -5,6 +5,8 @@ import { ARC_TESTNET, shortAddress } from "@/lib/invoices";
 import { CopyButton } from "@/components/CopyButton";
 import { PayWithWallet } from "@/components/PayWithWallet";
 
+export const dynamic = "force-dynamic";
+
 function QrPlaceholder() {
   return (
     <div className="grid size-full grid-cols-7 gap-1">
