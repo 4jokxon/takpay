@@ -1,4 +1,4 @@
-export type InvoiceStatus = "pending" | "paid" | "expired";
+export type InvoiceStatus = "pending" | "submitted" | "paid" | "expired";
 
 export type Invoice = {
   id: string;

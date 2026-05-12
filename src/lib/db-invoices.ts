@@ -83,6 +83,19 @@ export async function createInvoice(input: { amount: number; currency: "USDC" | 
   return toInvoice(data as DbInvoice);
 }
 
+export async function markInvoiceSubmitted(id: string, txHash: string) {
+  const { data, error } = await getSupabaseServer()
+    .from("invoices")
+    .update({ status: "submitted", paid_tx_hash: txHash })
+    .eq("id", id)
+    .neq("status", "paid")
+    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at")
+    .single();
+
+  if (error) throw error;
+  return toInvoice(data as DbInvoice);
+}
+
 export async function markInvoicePaid(id: string, txHash: string) {
   const { data, error } = await getSupabaseServer()
     .from("invoices")

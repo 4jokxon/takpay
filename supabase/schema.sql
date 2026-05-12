@@ -6,11 +6,17 @@ create table if not exists public.invoices (
   currency text not null check (currency in ('USDC','EURC')),
   memo text not null default '',
   recipient text not null,
-  status text not null default 'pending' check (status in ('pending','paid','expired')),
+  status text not null default 'pending' check (status in ('pending','submitted','paid','expired')),
   paid_tx_hash text,
   paid_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+do $$
+begin
+  alter table public.invoices drop constraint if exists invoices_status_check;
+  alter table public.invoices add constraint invoices_status_check check (status in ('pending','submitted','paid','expired'));
+end $$;
 
 create index if not exists invoices_created_at_idx on public.invoices (created_at desc);
 create index if not exists invoices_status_idx on public.invoices (status);

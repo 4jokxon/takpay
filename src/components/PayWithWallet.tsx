@@ -9,6 +9,9 @@ type EthereumProvider = {
   removeListener?: (event: string, cb: (...args: unknown[]) => void) => void;
 };
 
+type TxReceipt = { status?: string } | null;
+type PaymentStatus = "idle" | "connecting" | "switching" | "sending" | "submitted" | "confirming" | "paid" | "error";
+
 declare global {
   interface Window {
     ethereum?: EthereumProvider;
@@ -16,6 +19,8 @@ declare global {
 }
 
 const TRANSFER_SELECTOR = "0xa9059cbb";
+const RECEIPT_POLL_ATTEMPTS = 90;
+const RECEIPT_POLL_DELAY_MS = 2000;
 
 function padAddress(address: string) {
   return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
@@ -57,22 +62,35 @@ function txStatusKey(invoiceId: string) {
   return `takpay:${invoiceId}:paidTx`;
 }
 
+function submittedTxKey(invoiceId: string) {
+  return `takpay:${invoiceId}:submittedTx`;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   const [account, setAccount] = useState<string>("");
   const [chainId, setChainId] = useState<string>("");
   const [balance, setBalance] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem(txStatusKey(invoice.id)) ?? "";
+    if (typeof window === "undefined") return invoice.paidTxHash ?? "";
+    return window.localStorage.getItem(txStatusKey(invoice.id)) ?? window.localStorage.getItem(submittedTxKey(invoice.id)) ?? invoice.paidTxHash ?? "";
   });
-  const [status, setStatus] = useState<"idle" | "connecting" | "switching" | "sending" | "confirming" | "paid" | "error">(() => {
+  const [status, setStatus] = useState<PaymentStatus>(() => {
+    if (invoice.status === "paid") return "paid";
+    if (invoice.status === "submitted") return "submitted";
     if (typeof window === "undefined") return "idle";
-    return window.localStorage.getItem(txStatusKey(invoice.id)) ? "paid" : "idle";
+    if (window.localStorage.getItem(txStatusKey(invoice.id))) return "paid";
+    if (window.localStorage.getItem(submittedTxKey(invoice.id))) return "submitted";
+    return "idle";
   });
   const [message, setMessage] = useState(() => {
-    if (typeof window !== "undefined" && window.localStorage.getItem(txStatusKey(invoice.id))) {
-      return "Payment detected on this browser. Invoice marked paid.";
-    }
+    if (invoice.status === "paid") return "Payment confirmed. Invoice marked paid.";
+    if (invoice.status === "submitted") return "Transaction submitted. You can check confirmation again.";
+    if (typeof window !== "undefined" && window.localStorage.getItem(txStatusKey(invoice.id))) return "Payment detected on this browser. Invoice marked paid.";
+    if (typeof window !== "undefined" && window.localStorage.getItem(submittedTxKey(invoice.id))) return "Transaction submitted. You can check confirmation again.";
     return "Connect your wallet to pay with Arc testnet USDC.";
   });
 
@@ -104,6 +122,27 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!account || !isArc || !window.ethereum) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = (await window.ethereum?.request({
+          method: "eth_call",
+          params: [{ to: ARC_USDC.address, data: buildBalanceOfCalldata(account) }, "latest"],
+        })) as string | undefined;
+        if (!cancelled && result) setBalance(BigInt(result));
+      } catch {
+        if (!cancelled) setBalance(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [account, isArc]);
+
   async function refreshBalance(nextAccount = account) {
     if (!window.ethereum || !nextAccount || !isArc) {
       setBalance(null);
@@ -112,13 +151,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
 
     const result = (await window.ethereum.request({
       method: "eth_call",
-      params: [
-        {
-          to: ARC_USDC.address,
-          data: buildBalanceOfCalldata(nextAccount),
-        },
-        "latest",
-      ],
+      params: [{ to: ARC_USDC.address, data: buildBalanceOfCalldata(nextAccount) }, "latest"],
     })) as string;
 
     const nextBalance = BigInt(result);
@@ -149,24 +182,13 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
     setMessage("Switching wallet to Arc testnet...");
 
     try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: ARC_TESTNET.chainIdHex }],
-      });
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_TESTNET.chainIdHex }] });
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? (error as { code?: number }).code : undefined;
       if (code !== 4902) throw error;
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: ARC_TESTNET.chainIdHex,
-            chainName: ARC_TESTNET.name,
-            nativeCurrency: ARC_TESTNET.nativeCurrency,
-            rpcUrls: [ARC_TESTNET.rpcUrl],
-            blockExplorerUrls: [ARC_TESTNET.explorerUrl],
-          },
-        ],
+        params: [{ chainId: ARC_TESTNET.chainIdHex, chainName: ARC_TESTNET.name, nativeCurrency: ARC_TESTNET.nativeCurrency, rpcUrls: [ARC_TESTNET.rpcUrl], blockExplorerUrls: [ARC_TESTNET.explorerUrl] }],
       });
     }
 
@@ -175,32 +197,69 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
     setMessage("Arc testnet selected. Ready to send USDC.");
   }
 
-  useEffect(() => {
-    if (!account || !isArc || !window.ethereum) return;
+  async function markSubmitted(hash: string) {
+    window.localStorage.setItem(submittedTxKey(invoice.id), hash);
+    await fetch(`/api/invoices/${invoice.id}/submit`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ txHash: hash }),
+    }).catch(() => null);
+  }
 
-    let cancelled = false;
-    void (async () => {
-      try {
-        const result = (await window.ethereum?.request({
-          method: "eth_call",
-          params: [
-            {
-              to: ARC_USDC.address,
-              data: buildBalanceOfCalldata(account),
-            },
-            "latest",
-          ],
-        })) as string | undefined;
-        if (!cancelled && result) setBalance(BigInt(result));
-      } catch {
-        if (!cancelled) setBalance(null);
+  async function markPaid(hash: string) {
+    window.localStorage.setItem(txStatusKey(invoice.id), hash);
+    window.localStorage.removeItem(submittedTxKey(invoice.id));
+    await fetch(`/api/invoices/${invoice.id}/pay`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ txHash: hash }),
+    }).catch(() => null);
+    setStatus("paid");
+    setMessage("Payment confirmed. Invoice marked paid.");
+  }
+
+  async function getReceipt(hash: string) {
+    if (!window.ethereum) return null;
+    return (await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] })) as TxReceipt;
+  }
+
+  async function waitForReceipt(hash: string, attempts = RECEIPT_POLL_ATTEMPTS) {
+    setStatus("confirming");
+    for (let i = 0; i < attempts; i += 1) {
+      const receipt = await getReceipt(hash);
+      if (receipt?.status === "0x1") {
+        await markPaid(hash);
+        return "paid" as const;
       }
-    })();
+      if (receipt?.status === "0x0") throw new Error("Transaction reverted. The most common cause is insufficient ERC-20 USDC balance.");
+      setMessage(`Transaction submitted. Waiting for Arc receipt... (${i + 1}/${attempts})`);
+      await sleep(RECEIPT_POLL_DELAY_MS);
+    }
+    await markSubmitted(hash);
+    setStatus("submitted");
+    setMessage("Transaction submitted but still pending. You can check again in a moment.");
+    return "submitted" as const;
+  }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [account, isArc]);
+  async function checkAgain() {
+    if (!txHash) return;
+    try {
+      setStatus("confirming");
+      setMessage("Checking transaction receipt on Arc...");
+      const receipt = await getReceipt(txHash);
+      if (receipt?.status === "0x1") {
+        await markPaid(txHash);
+        return;
+      }
+      if (receipt?.status === "0x0") throw new Error("Transaction reverted. The most common cause is insufficient ERC-20 USDC balance.");
+      await markSubmitted(txHash);
+      setStatus("submitted");
+      setMessage("Still pending on Arc. Try Speed up/Cancel in wallet if it stays pending too long.");
+    } catch (error) {
+      setStatus("error");
+      setMessage(humanWalletError(error));
+    }
+  }
 
   async function pay() {
     if (!window.ethereum) return;
@@ -226,50 +285,22 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
       }
 
       setMessage(`Sending ${invoice.amount.toFixed(2)} ${invoice.currency} to ${shortAddress(invoice.recipient)}...`);
-
       const hash = (await window.ethereum.request({
         method: "eth_sendTransaction",
-        params: [
-          {
-            from: account,
-            to: ARC_USDC.address,
-            data: buildTransferCalldata(invoice.recipient, invoice.amount),
-          },
-        ],
+        params: [{ from: account, to: ARC_USDC.address, data: buildTransferCalldata(invoice.recipient, invoice.amount) }],
       })) as string;
 
       setTxHash(hash);
-      setStatus("confirming");
-      setMessage("Transaction submitted. Waiting for Arc finality...");
-
-      for (let i = 0; i < 20; i += 1) {
-        const receipt = (await window.ethereum.request({
-          method: "eth_getTransactionReceipt",
-          params: [hash],
-        })) as { status?: string } | null;
-
-        if (receipt?.status === "0x1") {
-          window.localStorage.setItem(txStatusKey(invoice.id), hash);
-          await fetch(`/api/invoices/${invoice.id}/pay`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ txHash: hash }),
-          }).catch(() => null);
-          setStatus("paid");
-          setMessage("Payment confirmed. Invoice marked paid.");
-          return;
-        }
-        if (receipt?.status === "0x0") throw new Error("Transaction reverted. The most common cause is insufficient ERC-20 USDC balance.");
-        await new Promise((resolve) => window.setTimeout(resolve, 800));
-      }
-
-      setStatus("confirming");
-      setMessage("Transaction submitted but receipt is still pending. Check explorer.");
+      await markSubmitted(hash);
+      await waitForReceipt(hash);
     } catch (error) {
       setStatus("error");
       setMessage(humanWalletError(error));
     }
   }
+
+  const busy = ["connecting", "switching", "sending", "confirming"].includes(status);
+  const canCheckAgain = !!txHash && ["submitted", "error"].includes(status);
 
   return (
     <div className="mt-5 space-y-4">
@@ -291,21 +322,19 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
       <button
         type="button"
         onClick={account ? (isArc ? pay : switchToArc) : connectWallet}
-        disabled={["connecting", "switching", "sending", "confirming"].includes(status)}
+        disabled={busy || status === "paid"}
         className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {!account
-          ? "Connect wallet"
-          : !isArc
-            ? "Switch to Arc testnet"
-            : status === "paid"
-              ? "Paid"
-              : status === "sending" || status === "confirming"
-                ? "Processing..."
-                : "Pay with wallet"}
+        {!account ? "Connect wallet" : !isArc ? "Switch to Arc testnet" : status === "paid" ? "Paid" : busy ? "Processing..." : status === "submitted" ? "Send another payment" : "Pay with wallet"}
       </button>
 
-      <p className={`text-center text-sm ${status === "error" ? "text-red-300" : status === "paid" ? "text-emerald-300" : "text-zinc-500"}`}>{message}</p>
+      {canCheckAgain ? (
+        <button type="button" onClick={checkAgain} className="w-full rounded-2xl border border-white/10 py-3 font-semibold text-white transition hover:bg-white/10">
+          Check again
+        </button>
+      ) : null}
+
+      <p className={`text-center text-sm ${status === "error" ? "text-red-300" : status === "paid" ? "text-emerald-300" : status === "submitted" ? "text-amber-300" : "text-zinc-500"}`}>{message}</p>
       {explorerTx ? (
         <a className="block text-center text-sm text-sky-300 hover:text-sky-200" href={explorerTx} target="_blank" rel="noreferrer">
           View transaction on Arcscan
