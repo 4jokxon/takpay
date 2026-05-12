@@ -8,6 +8,8 @@ export type Invoice = {
   recipient: string;
   status: InvoiceStatus;
   createdAt: string;
+  paidAt?: string | null;
+  paidTxHash?: string | null;
 };
 
 export const ARC_TESTNET = {
@@ -33,15 +35,19 @@ export const demoInvoices: Invoice[] = [
     recipient: "0xcEe2244B58Af2C8ddCa97A4aED0b819C5Fcb6910",
     status: "pending",
     createdAt: new Date().toISOString(),
+    paidAt: null,
+    paidTxHash: null,
   },
   {
     id: "TK-1002",
-    amount: 125,
+    amount: 1.25,
     currency: "USDC",
-    memo: "Frontend implementation milestone",
+    memo: "Frontend milestone demo",
     recipient: "0xcEe2244B58Af2C8ddCa97A4aED0b819C5Fcb6910",
     status: "paid",
     createdAt: new Date(Date.now() - 86400000).toISOString(),
+    paidAt: new Date(Date.now() - 86000000).toISOString(),
+    paidTxHash: "0x-demo",
   },
 ];
 

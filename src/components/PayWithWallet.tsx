@@ -250,6 +250,11 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
 
         if (receipt?.status === "0x1") {
           window.localStorage.setItem(txStatusKey(invoice.id), hash);
+          await fetch(`/api/invoices/${invoice.id}/pay`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ txHash: hash }),
+          }).catch(() => null);
           setStatus("paid");
           setMessage("Payment confirmed. Invoice marked paid.");
           return;

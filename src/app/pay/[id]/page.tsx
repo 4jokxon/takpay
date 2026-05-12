@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ARC_TESTNET, demoInvoices, shortAddress } from "@/lib/invoices";
+import { getInvoice } from "@/lib/db-invoices";
+import { ARC_TESTNET, shortAddress } from "@/lib/invoices";
 import { CopyButton } from "@/components/CopyButton";
 import { PayWithWallet } from "@/components/PayWithWallet";
 
@@ -18,7 +19,7 @@ function QrPlaceholder() {
 
 export default async function PayPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const invoice = demoInvoices.find((item) => item.id === id);
+  const invoice = await getInvoice(id);
   if (!invoice) notFound();
 
   const paymentUri = `ethereum:${invoice.recipient}?chain_id=${ARC_TESTNET.chainId}&value=${invoice.amount}`;

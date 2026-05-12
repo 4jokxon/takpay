@@ -1,8 +1,13 @@
 import Link from "next/link";
-import { demoInvoices, invoiceUrl, shortAddress } from "@/lib/invoices";
+import { createInvoiceAction } from "@/app/dashboard/actions";
 import { CopyButton } from "@/components/CopyButton";
+import { listInvoices } from "@/lib/db-invoices";
+import { demoInvoices, invoiceUrl, shortAddress } from "@/lib/invoices";
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const { invoices, usingFallback, error } = await listInvoices();
+  const defaultRecipient = invoices[0]?.recipient ?? demoInvoices[0].recipient;
+
   return (
     <main className="min-h-screen bg-[#05070d] px-6 py-8 text-white">
       <div className="mx-auto max-w-6xl">
@@ -11,22 +16,34 @@ export default function Dashboard() {
           <Link href="/pay/TK-1001" className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-black">Demo checkout</Link>
         </nav>
 
+        {usingFallback ? (
+          <div className="mb-6 rounded-3xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">
+            Supabase schema belum aktif, jadi dashboard masih menampilkan fallback demo. Jalankan SQL di <code className="font-mono">supabase/schema.sql</code>. Detail: {error}
+          </div>
+        ) : null}
+
         <section className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-6">
             <p className="text-sm uppercase tracking-[0.25em] text-emerald-300">New invoice</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight">Create a payment link</h1>
-            <p className="mt-3 text-zinc-400">MVP demo form. Next phase will persist invoices to Supabase and monitor Arc testnet payments.</p>
-            <form className="mt-8 space-y-4">
+            <p className="mt-3 text-zinc-400">Create real Supabase-backed invoices, then share a public checkout link.</p>
+            <form action={createInvoiceAction} className="mt-8 space-y-4">
               <label className="block text-sm text-zinc-300">Amount
-                <input defaultValue="50" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
+                <input name="amount" type="number" step="0.000001" min="0.000001" defaultValue="0.10" required className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
+              </label>
+              <label className="block text-sm text-zinc-300">Currency
+                <select name="currency" defaultValue="USDC" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300">
+                  <option value="USDC">USDC</option>
+                  <option value="EURC">EURC</option>
+                </select>
               </label>
               <label className="block text-sm text-zinc-300">Memo
-                <input defaultValue="Design sprint deposit" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
+                <input name="memo" defaultValue="Testnet checkout demo" required className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
               </label>
               <label className="block text-sm text-zinc-300">Recipient wallet
-                <input defaultValue={demoInvoices[0].recipient} className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white outline-none focus:border-emerald-300" />
+                <input name="recipient" defaultValue={defaultRecipient} required pattern="^0x[a-fA-F0-9]{40}$" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white outline-none focus:border-emerald-300" />
               </label>
-              <button type="button" className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black">Generate link</button>
+              <button type="submit" disabled={usingFallback} className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50">Generate link</button>
             </form>
           </div>
 
@@ -39,7 +56,7 @@ export default function Dashboard() {
               <span className="rounded-full border border-white/10 px-3 py-1 text-sm text-zinc-400">Arc testnet</span>
             </div>
             <div className="mt-6 space-y-3">
-              {demoInvoices.map((invoice) => (
+              {invoices.map((invoice) => (
                 <div key={invoice.id} className="rounded-3xl border border-white/10 bg-black/20 p-5">
                   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
@@ -57,6 +74,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ))}
+              {invoices.length === 0 ? <p className="rounded-3xl border border-white/10 bg-black/20 p-5 text-zinc-400">No invoices yet. Create your first payment link.</p> : null}
             </div>
           </div>
         </section>
