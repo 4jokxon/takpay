@@ -7,18 +7,6 @@ import { PayWithWallet } from "@/components/PayWithWallet";
 
 export const dynamic = "force-dynamic";
 
-function QrPlaceholder() {
-  return (
-    <div className="grid size-full grid-cols-7 gap-1">
-      {Array.from({ length: 49 }).map((_, i) => {
-        const finder = i < 16 || (i % 7 > 4 && Math.floor(i / 7) < 3) || (i % 7 < 2 && Math.floor(i / 7) > 4);
-        const dark = finder || i % 5 === 0 || i % 11 === 0;
-        return <span key={i} className={`${dark ? "bg-black" : "bg-zinc-200"} rounded-[2px]`} />;
-      })}
-    </div>
-  );
-}
-
 export default async function PayPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const invoice = await getInvoice(id);
@@ -27,79 +15,118 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
   const paymentUri = `ethereum:${invoice.recipient}?chain_id=${ARC_TESTNET.chainId}&value=${invoice.amount}`;
 
   return (
-    <main className="min-h-screen bg-[#05070d] px-6 py-8 text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col">
-        <nav className="mb-8 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 font-black text-emerald-300">T</div>
-            <span className="font-semibold">TakPay</span>
-          </Link>
-          <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-white">Dashboard</Link>
-        </nav>
+    <main className="min-h-screen bg-[#04060b] text-white">
+      {/* Background effects */}
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute -left-40 top-0 size-[500px] rounded-full bg-emerald-500/8 blur-[120px]" />
+        <div className="absolute -right-40 bottom-0 size-[400px] rounded-full bg-teal-500/5 blur-[100px]" />
+      </div>
 
-        <section className="grid flex-1 items-center gap-8 lg:grid-cols-[.95fr_1.05fr]">
-          <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-emerald-300">Checkout link</p>
-            <h1 className="mt-3 text-5xl font-semibold tracking-tight">Pay invoice {invoice.id}</h1>
-            <p className="mt-4 max-w-xl text-lg leading-8 text-zinc-400">Choose Arc testnet, scan the QR, or connect a wallet in the next implementation phase. This MVP demonstrates the checkout UX and payment metadata.</p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Network</p>
-                <p className="mt-2 font-semibold">{ARC_TESTNET.name}</p>
+      {/* Nav */}
+      <nav className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="grid size-9 place-items-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 text-sm font-black text-emerald-300">T</div>
+          <span className="text-lg font-semibold">TakPay</span>
+        </Link>
+        <Link href="/dashboard" className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 hover:bg-white/10">Dashboard</Link>
+      </nav>
+
+      <div className="relative z-10 mx-auto max-w-5xl px-6 py-8">
+        {/* Expired state */}
+        {invoice.status === "expired" && (
+          <div className="mx-auto max-w-lg rounded-2xl border border-red-400/20 bg-red-400/5 p-10 text-center backdrop-blur-sm">
+            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-red-400/15">
+              <span className="text-3xl">⏰</span>
+            </div>
+            <h1 className="text-3xl font-bold text-red-200">Invoice Expired</h1>
+            <p className="mt-3 text-zinc-400">This invoice is no longer accepting payments. Please request a new invoice from the merchant.</p>
+            <Link href="/" className="mt-6 inline-block rounded-full bg-white/10 px-6 py-3 text-sm font-medium hover:bg-white/15">Back to Home</Link>
+          </div>
+        )}
+
+        {/* Paid state */}
+        {invoice.status === "paid" && (
+          <div className="mx-auto max-w-lg rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-10 text-center backdrop-blur-sm">
+            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-emerald-400/20">
+              <span className="text-3xl">✓</span>
+            </div>
+            <h1 className="text-3xl font-bold text-emerald-200">Payment Complete</h1>
+            <p className="mt-3 text-zinc-400">This invoice has been paid and verified on Arc testnet.</p>
+            <Link href={`/receipt/${id}`} className="mt-6 inline-block rounded-full bg-emerald-400 px-6 py-3 font-semibold text-black hover:bg-emerald-300">View Receipt</Link>
+          </div>
+        )}
+
+        {/* Active payment */}
+        {invoice.status !== "expired" && invoice.status !== "paid" && (
+          <div className="grid gap-8 lg:grid-cols-[1fr_1fr]">
+            {/* Left: Invoice details */}
+            <div>
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs text-amber-200">
+                <span className="size-2 rounded-full bg-amber-400 animate-pulse" />
+                Awaiting Payment
               </div>
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Gas</p>
-                <p className="mt-2 font-semibold">USDC native</p>
+              <h1 className="text-4xl font-bold tracking-tight">Checkout</h1>
+              <p className="mt-2 text-zinc-400">Complete this payment using your wallet on Arc Testnet.</p>
+
+              {/* Amount card */}
+              <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-zinc-500">Amount Due</p>
+                <p className="mt-3 text-5xl font-bold">${invoice.amount.toFixed(2)} <span className="text-lg text-zinc-400">{invoice.currency}</span></p>
+                <p className="mt-3 text-sm text-zinc-400">{invoice.memo}</p>
+              </div>
+
+              {/* Details */}
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3">
+                  <span className="text-sm text-zinc-500">Network</span>
+                  <span className="text-sm font-medium">{ARC_TESTNET.name}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3">
+                  <span className="text-sm text-zinc-500">Recipient</span>
+                  <span className="font-mono text-sm">{shortAddress(invoice.recipient)}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3">
+                  <span className="text-sm text-zinc-500">Gas Token</span>
+                  <span className="text-sm font-medium">USDC (predictable fees)</span>
+                </div>
+                {invoice.expiresAt && (
+                  <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3">
+                    <span className="text-sm text-zinc-500">Expires</span>
+                    <span className="text-sm font-medium">{new Date(invoice.expiresAt).toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </div>
-            {invoice.expiresAt && invoice.status !== "paid" && invoice.status !== "expired" && (
-              <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Expires</p>
-                <p className="mt-2 font-semibold">{new Date(invoice.expiresAt).toLocaleString()}</p>
-              </div>
-            )}
-          </div>
 
-          <div className="mx-auto w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.06] p-4 shadow-2xl backdrop-blur">
-            <div className="rounded-[1.5rem] border border-white/10 bg-[#0b0f19] p-6">
-              {invoice.status === "expired" ? (
-                <div className="py-12 text-center">
-                  <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-red-400/15">
-                    <span className="text-2xl">⏰</span>
-                  </div>
-                  <h2 className="text-2xl font-semibold text-red-300">Invoice expired</h2>
-                  <p className="mt-3 text-zinc-400">This invoice is no longer accepting payments. Please request a new invoice from the merchant.</p>
+            {/* Right: Payment action */}
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+                <div className="text-center">
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-400">Pay with Wallet</p>
+                  <p className="mt-4 text-3xl font-bold">${invoice.amount.toFixed(2)}</p>
+                  <p className="mt-1 text-sm text-zinc-400">{invoice.currency} on Arc Testnet</p>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className={`rounded-full px-3 py-1 text-sm ${invoice.status === "paid" ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}>{invoice.status}</span>
+
+                {/* Wallet pay button */}
+                <div className="mt-6">
+                  <PayWithWallet invoice={invoice} />
+                </div>
+
+                {/* Manual payment info */}
+                <div className="mt-6 border-t border-white/10 pt-6">
+                  <p className="text-xs font-medium text-zinc-500">Or send manually to:</p>
+                  <div className="mt-2 rounded-xl bg-black/40 p-3">
+                    <p className="break-all font-mono text-xs text-zinc-300">{invoice.recipient}</p>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <CopyButton value={invoice.recipient} label="Copy address" />
                     <CopyButton value={paymentUri} label="Copy URI" />
                   </div>
-                  <div className="mt-8 text-center">
-                    <p className="text-6xl font-semibold tracking-tight">${invoice.amount.toFixed(2)}</p>
-                    <p className="mt-2 text-zinc-400">{invoice.amount.toFixed(2)} {invoice.currency}</p>
-                    <p className="mt-2 text-sm text-zinc-500">{invoice.memo}</p>
-                  </div>
-                  <div className="mx-auto mt-8 grid size-56 place-items-center rounded-3xl bg-white p-5 text-black">
-                    <QrPlaceholder />
-                  </div>
-                  <div className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Recipient</p>
-                      <p className="mt-2 font-mono text-sm text-zinc-200">{shortAddress(invoice.recipient)}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <CopyButton value={invoice.recipient} label="Copy address" />
-                      <CopyButton value={paymentUri} label="Copy payment URI" />
-                    </div>
-                  </div>
-                  <PayWithWallet invoice={invoice} />
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </div>
-        </section>
+        )}
       </div>
     </main>
   );
