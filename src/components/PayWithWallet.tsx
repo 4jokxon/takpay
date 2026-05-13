@@ -207,15 +207,28 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   }
 
   async function markPaid(hash: string) {
-    window.localStorage.setItem(txStatusKey(invoice.id), hash);
-    window.localStorage.removeItem(submittedTxKey(invoice.id));
-    await fetch(`/api/invoices/${invoice.id}/pay`, {
+    const response = await fetch(`/api/invoices/${invoice.id}/pay`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ txHash: hash }),
-    }).catch(() => null);
+    });
+
+    if (response.status === 202) {
+      window.localStorage.setItem(submittedTxKey(invoice.id), hash);
+      setStatus("submitted");
+      setMessage("Transaction submitted but server receipt is still pending. Check again shortly.");
+      return;
+    }
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string; reason?: string } | null;
+      throw new Error(body?.error ?? body?.reason ?? "Server could not verify this payment transaction.");
+    }
+
+    window.localStorage.setItem(txStatusKey(invoice.id), hash);
+    window.localStorage.removeItem(submittedTxKey(invoice.id));
     setStatus("paid");
-    setMessage("Payment confirmed. Invoice marked paid.");
+    setMessage("Payment confirmed and verified server-side. Invoice marked paid.");
   }
 
   async function getReceipt(hash: string) {
