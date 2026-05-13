@@ -10,6 +10,7 @@ export type Invoice = {
   createdAt: string;
   paidAt?: string | null;
   paidTxHash?: string | null;
+  expiresAt?: string | null;
 };
 
 export const ARC_TESTNET = {

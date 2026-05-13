@@ -3,7 +3,7 @@ import { createInvoice } from "@/lib/db-invoices";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { amount, currency, memo, recipient, merchantId } = body;
+  const { amount, currency, memo, recipient, merchantId, expiryHours } = body;
 
   if (!amount || !currency || !memo || !recipient) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       memo,
       recipient,
       merchantId,
+      expiryHours: expiryHours ? Number(expiryHours) : undefined,
     });
     return NextResponse.json({ invoice });
   } catch (error) {

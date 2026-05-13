@@ -52,33 +52,51 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
                 <p className="mt-2 font-semibold">USDC native</p>
               </div>
             </div>
+            {invoice.expiresAt && invoice.status !== "paid" && invoice.status !== "expired" && (
+              <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Expires</p>
+                <p className="mt-2 font-semibold">{new Date(invoice.expiresAt).toLocaleString()}</p>
+              </div>
+            )}
           </div>
 
           <div className="mx-auto w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.06] p-4 shadow-2xl backdrop-blur">
             <div className="rounded-[1.5rem] border border-white/10 bg-[#0b0f19] p-6">
-              <div className="flex items-center justify-between">
-                <span className={`rounded-full px-3 py-1 text-sm ${invoice.status === "paid" ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}>{invoice.status}</span>
-                <CopyButton value={paymentUri} label="Copy URI" />
-              </div>
-              <div className="mt-8 text-center">
-                <p className="text-6xl font-semibold tracking-tight">${invoice.amount.toFixed(2)}</p>
-                <p className="mt-2 text-zinc-400">{invoice.amount.toFixed(2)} {invoice.currency}</p>
-                <p className="mt-2 text-sm text-zinc-500">{invoice.memo}</p>
-              </div>
-              <div className="mx-auto mt-8 grid size-56 place-items-center rounded-3xl bg-white p-5 text-black">
-                <QrPlaceholder />
-              </div>
-              <div className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Recipient</p>
-                  <p className="mt-2 font-mono text-sm text-zinc-200">{shortAddress(invoice.recipient)}</p>
+              {invoice.status === "expired" ? (
+                <div className="py-12 text-center">
+                  <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-red-400/15">
+                    <span className="text-2xl">⏰</span>
+                  </div>
+                  <h2 className="text-2xl font-semibold text-red-300">Invoice expired</h2>
+                  <p className="mt-3 text-zinc-400">This invoice is no longer accepting payments. Please request a new invoice from the merchant.</p>
                 </div>
-                <div className="flex gap-2">
-                  <CopyButton value={invoice.recipient} label="Copy address" />
-                  <CopyButton value={paymentUri} label="Copy payment URI" />
-                </div>
-              </div>
-              <PayWithWallet invoice={invoice} />
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className={`rounded-full px-3 py-1 text-sm ${invoice.status === "paid" ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}>{invoice.status}</span>
+                    <CopyButton value={paymentUri} label="Copy URI" />
+                  </div>
+                  <div className="mt-8 text-center">
+                    <p className="text-6xl font-semibold tracking-tight">${invoice.amount.toFixed(2)}</p>
+                    <p className="mt-2 text-zinc-400">{invoice.amount.toFixed(2)} {invoice.currency}</p>
+                    <p className="mt-2 text-sm text-zinc-500">{invoice.memo}</p>
+                  </div>
+                  <div className="mx-auto mt-8 grid size-56 place-items-center rounded-3xl bg-white p-5 text-black">
+                    <QrPlaceholder />
+                  </div>
+                  <div className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Recipient</p>
+                      <p className="mt-2 font-mono text-sm text-zinc-200">{shortAddress(invoice.recipient)}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <CopyButton value={invoice.recipient} label="Copy address" />
+                      <CopyButton value={paymentUri} label="Copy payment URI" />
+                    </div>
+                  </div>
+                  <PayWithWallet invoice={invoice} />
+                </>
+              )}
             </div>
           </div>
         </section>
