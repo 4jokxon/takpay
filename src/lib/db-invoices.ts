@@ -11,6 +11,7 @@ type DbInvoice = {
   paid_tx_hash: string | null;
   paid_at: string | null;
   created_at: string;
+  merchant_id: string | null;
 };
 
 function toInvoice(row: DbInvoice): Invoice {
@@ -31,13 +32,19 @@ export function newInvoiceId() {
   return `TK-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 }
 
-export async function listInvoices(): Promise<{ invoices: Invoice[]; usingFallback: boolean; error?: string }> {
+export async function listInvoices(merchantId?: string): Promise<{ invoices: Invoice[]; usingFallback: boolean; error?: string }> {
   try {
-    const { data, error } = await getSupabaseServer()
+    let query = getSupabaseServer()
       .from("invoices")
-      .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at")
+      .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id")
       .order("created_at", { ascending: false })
       .limit(25);
+
+    if (merchantId) {
+      query = query.eq("merchant_id", merchantId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return { invoices: (data ?? []).map((row) => toInvoice(row as DbInvoice)), usingFallback: false };
@@ -64,7 +71,7 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
   return demoInvoices.find((invoice) => invoice.id === id) ?? null;
 }
 
-export async function createInvoice(input: { amount: number; currency: "USDC" | "EURC"; memo: string; recipient: string }) {
+export async function createInvoice(input: { amount: number; currency: "USDC" | "EURC"; memo: string; recipient: string; merchantId?: string }) {
   const id = newInvoiceId();
   const { data, error } = await getSupabaseServer()
     .from("invoices")
@@ -75,8 +82,9 @@ export async function createInvoice(input: { amount: number; currency: "USDC" | 
       memo: input.memo,
       recipient: input.recipient,
       status: "pending",
+      merchant_id: input.merchantId ?? null,
     })
-    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at")
+    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id")
     .single();
 
   if (error) throw error;
