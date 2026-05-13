@@ -39,18 +39,22 @@ export default function SignupPage() {
       return;
     }
 
-    // 2. Create merchant profile
+    // 2. Create merchant profile via server API (bypasses RLS)
     if (authData.user) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: profileError } = await (supabase.from("merchants") as any).insert({
-        id: authData.user.id,
-        email,
-        business_name: businessName,
-        wallet_address: walletAddress,
+      const res = await fetch("/api/merchants/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authData.user.id,
+          email,
+          businessName,
+          walletAddress,
+        }),
       });
 
-      if (profileError) {
-        setError(profileError.message);
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || "Failed to create merchant profile");
         setLoading(false);
         return;
       }
