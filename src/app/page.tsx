@@ -11,7 +11,7 @@ const steps = [
   {
     num: "01",
     title: "Connect Wallet",
-    desc: "Link your self-custodial wallet. Your wallet is your identity — no email, no password, no database.",
+    desc: "Link your self-custodial wallet. Your wallet is your identity. No email, no password, no database.",
     icon: "🔗",
   },
   {
@@ -30,7 +30,7 @@ const steps = [
 
 const features = [
   { title: "Auto Expiry", desc: "Invoices expire after configurable time. No stale payment links.", icon: "⏰" },
-  { title: "Multi-Wallet", desc: "MetaMask, WalletConnect, Coinbase Wallet, Phantom — all supported via Reown.", icon: "👛" },
+  { title: "Multi-Wallet", desc: "MetaMask, WalletConnect, Coinbase Wallet, Phantom. All supported via Reown.", icon: "👛" },
   { title: "Merchant Dashboard", desc: "Track all invoices, statuses, and payment history in one place.", icon: "📊" },
   { title: "On-Chain Receipts", desc: "Every payment verified on-chain with transaction hash proof.", icon: "🔒" },
   { title: "USDC Native", desc: "Built for stablecoin payments. No volatile gas tokens.", icon: "💵" },
