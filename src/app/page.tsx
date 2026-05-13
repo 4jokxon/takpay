@@ -20,7 +20,10 @@ export default function Home() {
               <p className="text-xs text-zinc-400">Crosschain invoices on Arc</p>
             </div>
           </div>
-          <Link href="/dashboard" className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/15">Open dashboard</Link>
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/15">Sign in</Link>
+            <Link href="/signup" className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-black">Sign up</Link>
+          </div>
         </nav>
 
         <div className="grid flex-1 items-center gap-10 py-16 lg:grid-cols-[1.05fr_.95fr]">
