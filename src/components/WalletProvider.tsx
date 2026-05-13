@@ -1,93 +1,56 @@
 "use client";
 
+import { createAppKit } from "@reown/appkit/react";
+import { WagmiProvider, type Config } from "wagmi";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { type ReactNode } from "react";
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-const WALLET_STORAGE_KEY = "takpay_wallet_address";
+// Arc Testnet chain definition
+const arcTestnet = {
+  id: 5042002,
+  name: "Arc Testnet",
+  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://rpc.testnet.arc.network"] },
+  },
+  blockExplorers: {
+    default: { name: "ArcScan", url: "https://testnet.arcscan.app" },
+  },
+} as const;
 
-type WalletContextType = {
-  address: string | null;
-  isConnected: boolean;
-  connect: () => Promise<void>;
-  disconnect: () => void;
+const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "";
+
+const metadata = {
+  name: "TakPay",
+  description: "Crosschain invoices on Arc",
+  url: "https://takpay.vercel.app",
+  icons: ["https://takpay.vercel.app/favicon.ico"],
 };
 
-const WalletContext = createContext<WalletContextType>({
-  address: null,
-  isConnected: false,
-  connect: async () => {},
-  disconnect: () => {},
+const wagmiAdapter = new WagmiAdapter({
+  projectId,
+  networks: [arcTestnet],
 });
 
-export function useWallet() {
-  return useContext(WalletContext);
-}
+createAppKit({
+  adapters: [wagmiAdapter],
+  projectId,
+  networks: [arcTestnet],
+  metadata,
+  features: {
+    analytics: false,
+  },
+});
 
-function getEthereum() {
-  if (typeof window === "undefined") return undefined;
-  return (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
-}
+const queryClient = new QueryClient();
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [address, setAddress] = useState<string | null>(null);
-
-  // On mount: check localStorage first, then verify with MetaMask
-  useEffect(() => {
-    const stored = localStorage.getItem(WALLET_STORAGE_KEY);
-    if (stored) {
-      setAddress(stored);
-      // Verify it's still connected (non-blocking)
-      const eth = getEthereum();
-      if (eth) {
-        eth.request({ method: "eth_accounts" }).then((accounts) => {
-          const accs = accounts as string[];
-          if (accs.length > 0) {
-            // Update to current account (might have switched)
-            const current = accs[0].toLowerCase();
-            if (current !== stored.toLowerCase()) {
-              setAddress(current);
-              localStorage.setItem(WALLET_STORAGE_KEY, current);
-            }
-          }
-          // If no accounts, keep stored address — user might just need to unlock MetaMask
-        }).catch(() => {});
-      }
-    } else {
-      // No stored address, try passive check
-      const eth = getEthereum();
-      if (eth) {
-        eth.request({ method: "eth_accounts" }).then((accounts) => {
-          const accs = accounts as string[];
-          if (accs.length > 0) {
-            setAddress(accs[0]);
-            localStorage.setItem(WALLET_STORAGE_KEY, accs[0]);
-          }
-        }).catch(() => {});
-      }
-    }
-  }, []);
-
-  const connect = useCallback(async () => {
-    const eth = getEthereum();
-    if (!eth) {
-      window.open("https://metamask.io/download/", "_blank");
-      return;
-    }
-    const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
-    if (accounts.length > 0) {
-      setAddress(accounts[0]);
-      localStorage.setItem(WALLET_STORAGE_KEY, accounts[0]);
-    }
-  }, []);
-
-  const disconnect = useCallback(() => {
-    setAddress(null);
-    localStorage.removeItem(WALLET_STORAGE_KEY);
-  }, []);
-
   return (
-    <WalletContext.Provider value={{ address, isConnected: !!address, connect, disconnect }}>
-      {children}
-    </WalletContext.Provider>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { useWallet } from "@/components/WalletProvider";
+import { useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { CopyButton } from "@/components/CopyButton";
 import { ConnectWalletButton } from "@/components/ConnectWalletButton";
@@ -30,7 +30,8 @@ function invoiceUrl(id: string) {
 }
 
 export default function Dashboard() {
-  const { address: walletAddress, isConnected, disconnect } = useWallet();
+  const { address: walletAddress, isConnected } = useAppKitAccount();
+  const { open } = useAppKit();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [merchantWallet, setMerchantWallet] = useState("");
@@ -159,7 +160,7 @@ export default function Dashboard() {
               {authMode === "wallet" ? shortAddress(merchantWallet) : userEmail}
             </span>
             {authMode === "email" ? <SignOutButton /> : (
-              <button onClick={disconnect} className="rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10">Disconnect</button>
+              <button onClick={() => open()} className="rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10">Disconnect</button>
             )}
           </div>
         </nav>
