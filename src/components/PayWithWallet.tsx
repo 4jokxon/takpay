@@ -12,10 +12,10 @@ type EthereumProvider = {
 type TxReceipt = { status?: string } | null;
 type PaymentStatus = "idle" | "connecting" | "switching" | "sending" | "submitted" | "confirming" | "paid" | "error";
 
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
+// Use module-scoped getter instead of global declaration to avoid conflict with wagmi types
+function getEthereum(): EthereumProvider | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as unknown as { ethereum?: EthereumProvider }).ethereum;
 }
 
 const TRANSFER_SELECTOR = "0xa9059cbb";
@@ -99,7 +99,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   const isPaid = status === "paid" || invoice.status === "paid";
 
   useEffect(() => {
-    if (!window.ethereum) return;
+    if (!getEthereum()) return;
 
     const handleAccountsChanged = (accounts: unknown) => {
       const next = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
@@ -111,25 +111,25 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
       setBalance(null);
     };
 
-    window.ethereum.on?.("accountsChanged", handleAccountsChanged);
-    window.ethereum.on?.("chainChanged", handleChainChanged);
+    getEthereum()?.on?.("accountsChanged", handleAccountsChanged);
+    getEthereum()?.on?.("chainChanged", handleChainChanged);
 
-    void window.ethereum.request({ method: "eth_accounts" }).then(handleAccountsChanged).catch(() => null);
-    void window.ethereum.request({ method: "eth_chainId" }).then(handleChainChanged).catch(() => null);
+    void getEthereum()!.request({ method: "eth_accounts" }).then(handleAccountsChanged).catch(() => null);
+    void getEthereum()!.request({ method: "eth_chainId" }).then(handleChainChanged).catch(() => null);
 
     return () => {
-      window.ethereum?.removeListener?.("accountsChanged", handleAccountsChanged);
-      window.ethereum?.removeListener?.("chainChanged", handleChainChanged);
+      getEthereum()?.removeListener?.("accountsChanged", handleAccountsChanged);
+      getEthereum()?.removeListener?.("chainChanged", handleChainChanged);
     };
   }, []);
 
   useEffect(() => {
-    if (!account || !isArc || !window.ethereum) return;
+    if (!account || !isArc || !getEthereum()) return;
 
     let cancelled = false;
     void (async () => {
       try {
-        const result = (await window.ethereum?.request({
+        const result = (await getEthereum()?.request({
           method: "eth_call",
           params: [{ to: ARC_USDC.address, data: buildBalanceOfCalldata(account) }, "latest"],
         })) as string | undefined;
@@ -145,12 +145,12 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   }, [account, isArc]);
 
   async function refreshBalance(nextAccount = account) {
-    if (!window.ethereum || !nextAccount || !isArc) {
+    if (!getEthereum() || !nextAccount || !isArc) {
       setBalance(null);
       return null;
     }
 
-    const result = (await window.ethereum.request({
+    const result = (await getEthereum()!.request({
       method: "eth_call",
       params: [{ to: ARC_USDC.address, data: buildBalanceOfCalldata(nextAccount) }, "latest"],
     })) as string;
@@ -161,7 +161,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   }
 
   async function connectWallet() {
-    if (!window.ethereum) {
+    if (!getEthereum()) {
       setStatus("error");
       setMessage("No injected wallet found. Install MetaMask, Rabby, or another EVM wallet.");
       return;
@@ -169,25 +169,25 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
 
     setStatus("connecting");
     setMessage("Requesting wallet connection...");
-    const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
+    const accounts = (await getEthereum()!.request({ method: "eth_requestAccounts" })) as string[];
     setAccount(accounts[0] ?? "");
-    const currentChain = (await window.ethereum.request({ method: "eth_chainId" })) as string;
+    const currentChain = (await getEthereum()!.request({ method: "eth_chainId" })) as string;
     setChainId(currentChain);
     setStatus("idle");
     setMessage(currentChain.toLowerCase() === ARC_TESTNET.chainIdHex ? "Wallet connected. Ready to check balance and pay." : "Wallet connected. Switch to Arc testnet to continue.");
   }
 
   async function switchToArc() {
-    if (!window.ethereum) return;
+    if (!getEthereum()) return;
     setStatus("switching");
     setMessage("Switching wallet to Arc testnet...");
 
     try {
-      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_TESTNET.chainIdHex }] });
+      await getEthereum()!.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ARC_TESTNET.chainIdHex }] });
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? (error as { code?: number }).code : undefined;
       if (code !== 4902) throw error;
-      await window.ethereum.request({
+      await getEthereum()!.request({
         method: "wallet_addEthereumChain",
         params: [{ chainId: ARC_TESTNET.chainIdHex, chainName: ARC_TESTNET.name, nativeCurrency: ARC_TESTNET.nativeCurrency, rpcUrls: [ARC_TESTNET.rpcUrl], blockExplorerUrls: [ARC_TESTNET.explorerUrl] }],
       });
@@ -233,8 +233,8 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   }
 
   async function getReceipt(hash: string) {
-    if (!window.ethereum) return null;
-    return (await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] })) as TxReceipt;
+    if (!getEthereum()) return null;
+    return (await getEthereum()!.request({ method: "eth_getTransactionReceipt", params: [hash] })) as TxReceipt;
   }
 
   async function waitForReceipt(hash: string, attempts = RECEIPT_POLL_ATTEMPTS) {
@@ -276,7 +276,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   }
 
   async function pay() {
-    if (!window.ethereum) return;
+    if (!getEthereum()) return;
     if (!account) {
       await connectWallet();
       return;
@@ -299,7 +299,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
       }
 
       setMessage(`Sending ${invoice.amount.toFixed(2)} ${invoice.currency} to ${shortAddress(invoice.recipient)}...`);
-      const hash = (await window.ethereum.request({
+      const hash = (await getEthereum()!.request({
         method: "eth_sendTransaction",
         params: [{ from: account, to: ARC_USDC.address, data: buildTransferCalldata(invoice.recipient, invoice.amount) }],
       })) as string;

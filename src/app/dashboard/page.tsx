@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
+import { useAppKitAccount } from "@reown/appkit/react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { CopyButton } from "@/components/CopyButton";
-import type { User } from "@supabase/supabase-js";
+import { ConnectWalletButton } from "@/components/ConnectWalletButton";
 
 type Invoice = {
   id: string;
@@ -15,6 +16,7 @@ type Invoice = {
   memo: string;
   recipient: string;
   status: string;
+  expires_at: string | null;
 };
 
 function shortAddress(address: string) {
@@ -28,56 +30,93 @@ function invoiceUrl(id: string) {
 }
 
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(null);
+  const { address: walletAddress, isConnected } = useAppKitAccount();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [walletAddress, setWalletAddress] = useState("");
+  const [merchantWallet, setMerchantWallet] = useState("");
+  const [authMode, setAuthMode] = useState<"wallet" | "email" | null>(null);
+  const [userEmail, setUserEmail] = useState("");
+  const [merchantId, setMerchantId] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    const supabase = getSupabaseBrowser();
+    async function init() {
+      // Try wallet auth first
+      if (isConnected && walletAddress) {
+        const res = await fetch("/api/merchants/wallet-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMerchantId(data.merchant?.id || "");
+          setMerchantWallet(walletAddress);
+          setAuthMode("wallet");
+          await loadInvoices(walletAddress);
+          return;
+        }
+      }
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.push("/login");
+      // Fallback to Supabase email auth
+      const supabase = getSupabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || "");
+        setAuthMode("email");
+        // Get merchant wallet from profile
+        const { data } = await (supabase.from("merchants") as any)
+          .select("id, wallet_address")
+          .eq("id", user.id)
+          .single();
+        if (data) {
+          setMerchantId(data.id);
+          setMerchantWallet(data.wallet_address || "");
+        }
+        await loadInvoicesByMerchantId(user.id);
         return;
       }
-      setUser(user);
 
-      // Fetch merchant profile for wallet address
-      (supabase.from("merchants") as any)
-        .select("wallet_address")
-        .eq("id", user.id)
-        .single()
-        .then(({ data }: any) => {
-          if (data?.wallet_address) setWalletAddress(data.wallet_address);
-        });
+      // Not authenticated at all
+      setLoading(false);
+    }
 
-      // Fetch invoices for this merchant
-      (supabase.from("invoices") as any)
-        .select("id, amount, currency, memo, recipient, status")
-        .eq("merchant_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(25)
-        .then(({ data }: any) => {
-          setInvoices(data ?? []);
-          setLoading(false);
-        });
-    });
-  }, [router]);
+    init();
+  }, [isConnected, walletAddress]);
 
-  async function handleCreateInvoice(formData: FormData) {
-    if (!user) return;
+  async function loadInvoices(wallet: string) {
+    const res = await fetch(`/api/invoices/list?wallet=${wallet}`);
+    if (res.ok) {
+      const data = await res.json();
+      setInvoices(data.invoices || []);
+    }
+    setLoading(false);
+  }
 
+  async function loadInvoicesByMerchantId(id: string) {
+    const supabase = getSupabaseBrowser();
+    const { data } = await (supabase.from("invoices") as any)
+      .select("id, amount, currency, memo, recipient, status, expires_at")
+      .eq("merchant_id", id)
+      .order("created_at", { ascending: false })
+      .limit(25);
+    setInvoices(data ?? []);
+    setLoading(false);
+  }
+
+  async function handleCreateInvoice(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const amount = Number(formData.get("amount"));
     const currency = formData.get("currency") as string;
     const memo = formData.get("memo") as string;
     const recipient = formData.get("recipient") as string;
+    const expiryHours = Number(formData.get("expiryHours") || 24);
 
     const res = await fetch("/api/invoices/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, currency, memo, recipient, merchantId: user.id }),
+      body: JSON.stringify({ amount, currency, memo, recipient, merchantId, expiryHours }),
     });
 
     if (res.ok) {
@@ -94,7 +133,20 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) return null;
+  if (!authMode) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#05070d] px-6 text-white">
+        <div className="text-center">
+          <h1 className="text-3xl font-semibold">Connect to TakPay</h1>
+          <p className="mt-3 text-zinc-400">Connect your wallet or sign in to access your dashboard.</p>
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <ConnectWalletButton />
+            <Link href="/login" className="text-sm text-zinc-400 hover:text-emerald-300">or sign in with email</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#05070d] px-6 py-8 text-white">
@@ -102,8 +154,12 @@ export default function Dashboard() {
         <nav className="mb-10 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold">TakPay</Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-400">{user.email}</span>
-            <SignOutButton />
+            <span className="text-sm text-zinc-400">
+              {authMode === "wallet" ? shortAddress(merchantWallet) : userEmail}
+            </span>
+            {authMode === "email" ? <SignOutButton /> : (
+              <appkit-button size="sm" />
+            )}
           </div>
         </nav>
 
@@ -111,8 +167,8 @@ export default function Dashboard() {
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-6">
             <p className="text-sm uppercase tracking-[0.25em] text-emerald-300">New invoice</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight">Create a payment link</h1>
-            <p className="mt-3 text-zinc-400">Create invoices linked to your merchant account.</p>
-            <form action={handleCreateInvoice} className="mt-8 space-y-4">
+            <p className="mt-3 text-zinc-400">Create invoices linked to your wallet.</p>
+            <form onSubmit={handleCreateInvoice} className="mt-8 space-y-4">
               <label className="block text-sm text-zinc-300">Amount
                 <input name="amount" type="number" step="0.000001" min="0.000001" defaultValue="0.10" required className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
               </label>
@@ -126,7 +182,10 @@ export default function Dashboard() {
                 <input name="memo" defaultValue="Testnet checkout demo" required className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
               </label>
               <label className="block text-sm text-zinc-300">Recipient wallet
-                <input name="recipient" defaultValue={walletAddress} required pattern="^0x[a-fA-F0-9]{40}$" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white outline-none focus:border-emerald-300" />
+                <input name="recipient" defaultValue={merchantWallet} required pattern="^0x[a-fA-F0-9]{40}$" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white outline-none focus:border-emerald-300" />
+              </label>
+              <label className="block text-sm text-zinc-300">Expires in (hours)
+                <input name="expiryHours" type="number" min="1" max="720" defaultValue="24" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
               </label>
               <button type="submit" className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black">Generate link</button>
             </form>
@@ -147,7 +206,11 @@ export default function Dashboard() {
                     <div>
                       <div className="flex items-center gap-3">
                         <p className="font-semibold">{invoice.id}</p>
-                        <span className={`rounded-full px-2 py-1 text-xs ${invoice.status === "paid" ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}>{invoice.status}</span>
+                        <span className={`rounded-full px-2 py-1 text-xs ${
+                          invoice.status === "paid" ? "bg-emerald-400/15 text-emerald-300" :
+                          invoice.status === "expired" ? "bg-red-400/15 text-red-300" :
+                          "bg-amber-400/15 text-amber-300"
+                        }`}>{invoice.status}</span>
                       </div>
                       <p className="mt-2 text-2xl font-semibold">${invoice.amount.toFixed(2)} {invoice.currency}</p>
                       <p className="mt-1 text-sm text-zinc-400">{invoice.memo} • {shortAddress(invoice.recipient)}</p>

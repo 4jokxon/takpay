@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ARC_TESTNET, demoInvoices, shortAddress } from "@/lib/invoices";
+import { ConnectWalletButton } from "@/components/ConnectWalletButton";
 
 const stats = [
   { label: "Settlement", value: "sub-second" },
@@ -21,8 +22,8 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/15">Sign in</Link>
-            <Link href="/signup" className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-semibold text-black">Sign up</Link>
+            <Link href="/login" className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/15">Email login</Link>
+            <ConnectWalletButton className="px-4 py-2 text-sm" />
           </div>
         </nav>
 
@@ -35,11 +36,11 @@ export default function Home() {
               Payment links for USDC-native internet business.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
-              TakPay lets sellers create clean crypto-native invoices, share a checkout link, and settle payments on Arc with predictable USDC fees.
+              Connect your wallet, create invoices, share checkout links. Settle payments on Arc with sub-second finality and predictable USDC fees.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/dashboard" className="rounded-full bg-emerald-400 px-6 py-3 text-center font-semibold text-black shadow-[0_0_40px_#34d39955] transition hover:bg-emerald-300">Create invoice</Link>
-              <Link href="/pay/TK-1001" className="rounded-full border border-white/10 bg-white/10 px-6 py-3 text-center font-semibold text-white transition hover:bg-white/15">View payment link</Link>
+              <ConnectWalletButton className="shadow-[0_0_40px_#34d39955]" />
+              <Link href="/pay/TK-1001" className="rounded-full border border-white/10 bg-white/10 px-6 py-3 text-center font-semibold text-white transition hover:bg-white/15">View demo checkout</Link>
             </div>
             <dl className="mt-10 grid max-w-xl grid-cols-3 gap-3">
               {stats.map((stat) => (
