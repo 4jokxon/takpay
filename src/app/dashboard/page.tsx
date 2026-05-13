@@ -8,6 +8,7 @@ import { useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { CopyButton } from "@/components/CopyButton";
 import { ConnectWalletButton } from "@/components/ConnectWalletButton";
+import { WebhookSettings } from "@/components/WebhookSettings";
 
 type Invoice = {
   id: string;
@@ -38,7 +39,7 @@ export default function Dashboard() {
   const [authMode, setAuthMode] = useState<"wallet" | "email" | null>(null);
   const [userEmail, setUserEmail] = useState("");
   const [merchantId, setMerchantId] = useState("");
-  const [tab, setTab] = useState<"create" | "invoices">("create");
+  const [tab, setTab] = useState<"create" | "invoices" | "settings">("create");
   const router = useRouter();
 
   // Live preview state
@@ -234,6 +235,9 @@ export default function Dashboard() {
           <button onClick={() => setTab("invoices")} className={`rounded-full px-5 py-2 text-sm font-medium transition ${tab === "invoices" ? "bg-emerald-400 text-black" : "border border-white/10 text-zinc-400 hover:bg-white/5"}`}>
             My Invoices ({invoices.length})
           </button>
+          <button onClick={() => setTab("settings")} className={`rounded-full px-5 py-2 text-sm font-medium transition ${tab === "settings" ? "bg-emerald-400 text-black" : "border border-white/10 text-zinc-400 hover:bg-white/5"}`}>
+            Settings
+          </button>
         </div>
 
         {/* Create Payment Tab */}
@@ -377,6 +381,12 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+        {/* Settings Tab */}
+        {tab === "settings" && (
+          <div className="space-y-6">
+            <WebhookSettings merchantId={merchantId} />
           </div>
         )}
       </div>

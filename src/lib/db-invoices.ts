@@ -27,6 +27,7 @@ function toInvoice(row: DbInvoice): Invoice {
     paidAt: row.paid_at,
     paidTxHash: row.paid_tx_hash,
     expiresAt: row.expires_at,
+    merchantId: row.merchant_id,
   };
 }
 

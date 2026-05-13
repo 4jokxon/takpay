@@ -11,6 +11,7 @@ export type Invoice = {
   paidAt?: string | null;
   paidTxHash?: string | null;
   expiresAt?: string | null;
+  merchantId?: string | null;
 };
 
 export const ARC_TESTNET = {

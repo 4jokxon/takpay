@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getInvoice, markInvoiceSubmitted, markInvoicePaid } from "@/lib/db-invoices";
 import { ARC_TESTNET } from "@/lib/invoices";
+import { sendWebhook } from "@/lib/webhook";
 
 // Verify a transaction on-chain and mark invoice as paid
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -80,6 +81,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // Mark as paid
   await markInvoicePaid(id, txHash);
+
+  // Send webhook notification (best-effort, non-blocking)
+  if (invoice.merchantId) {
+    sendWebhook(invoice.merchantId, {
+      event: "invoice.paid",
+      invoice_id: id,
+      amount: invoice.amount,
+      currency: invoice.currency,
+      memo: invoice.memo,
+      recipient: invoice.recipient,
+      tx_hash: txHash,
+      paid_at: new Date().toISOString(),
+    });
+  }
 
   return NextResponse.json({ message: "Payment verified", status: "paid" });
 }
