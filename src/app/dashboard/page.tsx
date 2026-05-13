@@ -1,19 +1,100 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createInvoiceAction } from "@/app/dashboard/actions";
-import { CopyButton } from "@/components/CopyButton";
-import { listInvoices } from "@/lib/db-invoices";
-import { invoiceUrl, shortAddress } from "@/lib/invoices";
-import { getAuthUser } from "@/lib/supabase-auth";
+import { getSupabaseBrowser } from "@/lib/supabase-browser";
 import { SignOutButton } from "@/components/SignOutButton";
+import { CopyButton } from "@/components/CopyButton";
+import type { User } from "@supabase/supabase-js";
 
-export const dynamic = "force-dynamic";
+type Invoice = {
+  id: string;
+  amount: number;
+  currency: string;
+  memo: string;
+  recipient: string;
+  status: string;
+};
 
-export default async function Dashboard() {
-  const user = await getAuthUser();
-  if (!user) redirect("/login");
+function shortAddress(address: string) {
+  if (!address || address.length < 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
-  const { invoices, usingFallback, error } = await listInvoices(user.id);
+function invoiceUrl(id: string) {
+  if (typeof window === "undefined") return `/pay/${id}`;
+  return `${window.location.origin}/pay/${id}`;
+}
+
+export default function Dashboard() {
+  const [user, setUser] = useState<User | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [walletAddress, setWalletAddress] = useState("");
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+      setUser(user);
+
+      // Fetch merchant profile for wallet address
+      (supabase.from("merchants") as any)
+        .select("wallet_address")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }: any) => {
+          if (data?.wallet_address) setWalletAddress(data.wallet_address);
+        });
+
+      // Fetch invoices for this merchant
+      (supabase.from("invoices") as any)
+        .select("id, amount, currency, memo, recipient, status")
+        .eq("merchant_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(25)
+        .then(({ data }: any) => {
+          setInvoices(data ?? []);
+          setLoading(false);
+        });
+    });
+  }, [router]);
+
+  async function handleCreateInvoice(formData: FormData) {
+    if (!user) return;
+
+    const amount = Number(formData.get("amount"));
+    const currency = formData.get("currency") as string;
+    const memo = formData.get("memo") as string;
+    const recipient = formData.get("recipient") as string;
+
+    const res = await fetch("/api/invoices/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, currency, memo, recipient, merchantId: user.id }),
+    });
+
+    if (res.ok) {
+      const { invoice } = await res.json();
+      router.push(`/pay/${invoice.id}`);
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#05070d] text-white">
+        <p className="text-zinc-400">Loading dashboard...</p>
+      </main>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <main className="min-h-screen bg-[#05070d] px-6 py-8 text-white">
@@ -26,18 +107,12 @@ export default async function Dashboard() {
           </div>
         </nav>
 
-        {usingFallback ? (
-          <div className="mb-6 rounded-3xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">
-            Supabase schema belum aktif, jadi dashboard masih menampilkan fallback demo. Jalankan SQL di <code className="font-mono">supabase/schema.sql</code> dan <code className="font-mono">supabase/002-merchants.sql</code>. Detail: {error}
-          </div>
-        ) : null}
-
         <section className="grid gap-6 lg:grid-cols-[.9fr_1.1fr]">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-6">
             <p className="text-sm uppercase tracking-[0.25em] text-emerald-300">New invoice</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight">Create a payment link</h1>
             <p className="mt-3 text-zinc-400">Create invoices linked to your merchant account.</p>
-            <form action={createInvoiceAction} className="mt-8 space-y-4">
+            <form action={handleCreateInvoice} className="mt-8 space-y-4">
               <label className="block text-sm text-zinc-300">Amount
                 <input name="amount" type="number" step="0.000001" min="0.000001" defaultValue="0.10" required className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
               </label>
@@ -51,9 +126,9 @@ export default async function Dashboard() {
                 <input name="memo" defaultValue="Testnet checkout demo" required className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-emerald-300" />
               </label>
               <label className="block text-sm text-zinc-300">Recipient wallet
-                <input name="recipient" defaultValue={user.user_metadata?.wallet_address ?? ""} required pattern="^0x[a-fA-F0-9]{40}$" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white outline-none focus:border-emerald-300" />
+                <input name="recipient" defaultValue={walletAddress} required pattern="^0x[a-fA-F0-9]{40}$" className="mt-2 w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-white outline-none focus:border-emerald-300" />
               </label>
-              <button type="submit" disabled={usingFallback} className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50">Generate link</button>
+              <button type="submit" className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black">Generate link</button>
             </form>
           </div>
 
