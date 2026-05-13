@@ -1,57 +1,61 @@
 "use client";
 
-import { createAppKit } from "@reown/appkit/react";
-import { WagmiProvider, type Config } from "wagmi";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { defineChain } from "@reown/appkit/networks";
 import { type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-// Arc Testnet chain definition
-const arcTestnet = defineChain({
-  id: 5042002,
-  caipNetworkId: "eip155:5042002",
-  chainNamespace: "eip155",
-  name: "Arc Testnet",
-  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-  rpcUrls: {
-    default: { http: ["https://rpc.testnet.arc.network"] },
-  },
-  blockExplorers: {
-    default: { name: "ArcScan", url: "https://testnet.arcscan.app" },
-  },
+type WalletContextType = {
+  address: string | null;
+  isConnected: boolean;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+};
+
+const WalletContext = createContext<WalletContextType>({
+  address: null,
+  isConnected: false,
+  connect: async () => {},
+  disconnect: () => {},
 });
 
-const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "demo-project-id";
+export function useWallet() {
+  return useContext(WalletContext);
+}
 
-const queryClient = new QueryClient();
-
-const wagmiAdapter = new WagmiAdapter({
-  projectId,
-  networks: [arcTestnet],
-});
-
-createAppKit({
-  adapters: [wagmiAdapter],
-  projectId,
-  networks: [arcTestnet],
-  metadata: {
-    name: "TakPay",
-    description: "Crosschain invoices and checkout on Arc",
-    url: "https://takpay.vercel.app",
-    icons: [],
-  },
-  features: {
-    analytics: false,
-  },
-});
+function getEthereum() {
+  if (typeof window === "undefined") return undefined;
+  return (window as unknown as { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+}
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const [address, setAddress] = useState<string | null>(null);
+
+  // Check if already connected on mount
+  useEffect(() => {
+    const eth = getEthereum();
+    if (!eth) return;
+    eth.request({ method: "eth_accounts" }).then((accounts) => {
+      const accs = accounts as string[];
+      if (accs.length > 0) setAddress(accs[0]);
+    }).catch(() => {});
+  }, []);
+
+  const connect = useCallback(async () => {
+    const eth = getEthereum();
+    if (!eth) {
+      window.open("https://metamask.io/download/", "_blank");
+      return;
+    }
+    const accounts = (await eth.request({ method: "eth_requestAccounts" })) as string[];
+    if (accounts.length > 0) setAddress(accounts[0]);
+  }, []);
+
+  const disconnect = useCallback(() => {
+    setAddress(null);
+  }, []);
+
   return (
-    <WagmiProvider config={wagmiAdapter.wagmiConfig as Config}>
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    </WagmiProvider>
+    <WalletContext.Provider value={{ address, isConnected: !!address, connect, disconnect }}>
+      {children}
+    </WalletContext.Provider>
   );
 }

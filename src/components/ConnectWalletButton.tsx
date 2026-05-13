@@ -1,30 +1,45 @@
 "use client";
 
-import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useWallet } from "@/components/WalletProvider";
 
 export function ConnectWalletButton({ className = "" }: { className?: string }) {
-  const { open } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
+  const { connect, isConnected, address } = useWallet();
   const router = useRouter();
   const [registering, setRegistering] = useState(false);
 
-  useEffect(() => {
-    if (isConnected && address && !registering) {
-      // Auto-register merchant profile if wallet connected
-      setRegistering(true);
-      registerWalletMerchant(address).then(() => {
-        router.push("/dashboard");
-      }).catch(() => {
-        // If registration fails (already exists), still go to dashboard
-        router.push("/dashboard");
-      }).finally(() => setRegistering(false));
+  async function handleConnect() {
+    if (isConnected && address) {
+      // Already connected, go to dashboard
+      router.push("/dashboard");
+      return;
     }
-  }, [isConnected, address, router, registering]);
 
-  function handleConnect() {
-    open();
+    await connect();
+
+    // After connect, get the address from ethereum
+    const eth = (window as unknown as { ethereum?: { request: (args: { method: string }) => Promise<unknown> } }).ethereum;
+    if (!eth) return;
+
+    const accounts = (await eth.request({ method: "eth_accounts" })) as string[];
+    if (accounts.length === 0) return;
+
+    const walletAddress = accounts[0];
+    setRegistering(true);
+
+    try {
+      await fetch("/api/merchants/wallet-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+      });
+      router.push("/dashboard");
+    } catch {
+      router.push("/dashboard");
+    } finally {
+      setRegistering(false);
+    }
   }
 
   if (registering) {
@@ -37,23 +52,7 @@ export function ConnectWalletButton({ className = "" }: { className?: string }) 
 
   return (
     <button onClick={handleConnect} className={`rounded-full bg-emerald-400 px-6 py-3 font-semibold text-black transition hover:bg-emerald-300 ${className}`}>
-      Connect Wallet
+      {isConnected ? "Open Dashboard" : "Connect Wallet"}
     </button>
   );
-}
-
-async function registerWalletMerchant(walletAddress: string) {
-  const res = await fetch("/api/merchants/wallet-auth", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ walletAddress }),
-  });
-  if (!res.ok) {
-    const data = await res.json();
-    // "already_exists" is fine — means merchant already registered
-    if (data.code !== "already_exists") {
-      throw new Error(data.error || "Registration failed");
-    }
-  }
-  return res.json();
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase-browser";
-import { useAppKitAccount } from "@reown/appkit/react";
+import { useWallet } from "@/components/WalletProvider";
 import { SignOutButton } from "@/components/SignOutButton";
 import { CopyButton } from "@/components/CopyButton";
 import { ConnectWalletButton } from "@/components/ConnectWalletButton";
@@ -30,7 +30,7 @@ function invoiceUrl(id: string) {
 }
 
 export default function Dashboard() {
-  const { address: walletAddress, isConnected } = useAppKitAccount();
+  const { address: walletAddress, isConnected, disconnect } = useWallet();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [merchantWallet, setMerchantWallet] = useState("");
@@ -64,7 +64,6 @@ export default function Dashboard() {
       if (user) {
         setUserEmail(user.email || "");
         setAuthMode("email");
-        // Get merchant wallet from profile
         const { data } = await (supabase.from("merchants") as any)
           .select("id, wallet_address")
           .eq("id", user.id)
@@ -77,7 +76,7 @@ export default function Dashboard() {
         return;
       }
 
-      // Not authenticated at all
+      // Not authenticated
       setLoading(false);
     }
 
@@ -158,7 +157,7 @@ export default function Dashboard() {
               {authMode === "wallet" ? shortAddress(merchantWallet) : userEmail}
             </span>
             {authMode === "email" ? <SignOutButton /> : (
-              <appkit-button size="sm" />
+              <button onClick={disconnect} className="rounded-full border border-white/10 px-3 py-2 text-sm text-zinc-300 hover:bg-white/10">Disconnect</button>
             )}
           </div>
         </nav>
