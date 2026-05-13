@@ -4,6 +4,7 @@ import { getInvoice } from "@/lib/db-invoices";
 import { ARC_TESTNET, shortAddress } from "@/lib/invoices";
 import { CopyButton } from "@/components/CopyButton";
 import { PayWithWallet } from "@/components/PayWithWallet";
+import { VerifyManualPayment } from "@/components/VerifyManualPayment";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,9 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
                     <CopyButton value={paymentUri} label="Copy URI" />
                   </div>
                 </div>
+
+                {/* Verify manual payment */}
+                <VerifyManualPayment invoiceId={id} />
               </div>
             </div>
           </div>
