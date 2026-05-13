@@ -24,8 +24,8 @@ export function ConnectWalletButton({ className = "", redirectTo }: { className?
       setRegistering(false);
     }
     if (redirectTo) {
-      router.push(redirectTo);
-      router.refresh();
+      // Force full page reload to re-trigger useEffect with new wallet state
+      window.location.href = redirectTo;
     }
   }
 

@@ -141,7 +141,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-semibold">Connect to TakPay</h1>
           <p className="mt-3 text-zinc-400">Connect your wallet or sign in to access your dashboard.</p>
           <div className="mt-8 flex flex-col items-center gap-4">
-            <ConnectWalletButton />
+            <ConnectWalletButton redirectTo="/dashboard" />
             <Link href="/login" className="text-sm text-zinc-400 hover:text-emerald-300">or sign in with email</Link>
           </div>
         </div>
