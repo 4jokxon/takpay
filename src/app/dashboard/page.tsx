@@ -41,6 +41,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function init() {
+      setLoading(true);
+      
       // Try wallet auth first
       if (isConnected && walletAddress) {
         const res = await fetch("/api/merchants/wallet-auth", {
