@@ -2,46 +2,29 @@
 
 import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export function ConnectWalletButton({ className = "", redirectTo }: { className?: string; redirectTo?: string }) {
+export function ConnectWalletButton({ className = "" }: { className?: string }) {
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
   const router = useRouter();
   const [registering, setRegistering] = useState(false);
 
-  // When wallet connects, register merchant and redirect
-  useEffect(() => {
-    if (isConnected && address && redirectTo) {
-      registerAndRedirect(address);
-    }
-  }, [isConnected, address]);
-
-  async function registerAndRedirect(walletAddress: string) {
-    setRegistering(true);
-    try {
-      await fetch("/api/merchants/wallet-auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress }),
-      });
-    } catch {
-      // Non-critical
-    } finally {
-      setRegistering(false);
-    }
-    if (redirectTo) {
-      window.location.href = redirectTo;
-    }
-  }
-
   async function handleClick() {
     if (isConnected && address) {
-      if (redirectTo) {
-        await registerAndRedirect(address);
-      } else {
-        router.push("/dashboard");
+      // Already connected — register and go to dashboard
+      setRegistering(true);
+      try {
+        await fetch("/api/merchants/wallet-auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress: address }),
+        });
+      } catch {
+        // Non-critical
       }
+      setRegistering(false);
+      router.push("/dashboard");
       return;
     }
     // Open Reown AppKit modal

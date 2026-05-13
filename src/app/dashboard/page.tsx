@@ -42,10 +42,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function init() {
-      setLoading(true);
-      
       // Try wallet auth first
       if (isConnected && walletAddress) {
+        setLoading(true);
         const res = await fetch("/api/merchants/wallet-auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -59,12 +58,15 @@ export default function Dashboard() {
           await loadInvoices(walletAddress);
           return;
         }
+        setLoading(false);
+        return;
       }
 
       // Fallback to Supabase email auth
       const supabase = getSupabaseBrowser();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setLoading(true);
         setUserEmail(user.email || "");
         setAuthMode("email");
         const { data } = await (supabase.from("merchants") as any)
@@ -142,7 +144,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-semibold">Connect to TakPay</h1>
           <p className="mt-3 text-zinc-400">Connect your wallet or sign in to access your dashboard.</p>
           <div className="mt-8 flex flex-col items-center gap-4">
-            <ConnectWalletButton redirectTo="/dashboard" />
+            <ConnectWalletButton />
             <Link href="/login" className="text-sm text-zinc-400 hover:text-emerald-300">or sign in with email</Link>
           </div>
         </div>

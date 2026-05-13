@@ -23,7 +23,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium text-zinc-100 transition hover:bg-white/15">Email login</Link>
-            <ConnectWalletButton className="px-4 py-2 text-sm" redirectTo="/dashboard" />
+            <ConnectWalletButton className="px-4 py-2 text-sm" />
           </div>
         </nav>
 
@@ -39,7 +39,7 @@ export default function Home() {
               Connect your wallet, create invoices, share checkout links. Settle payments on Arc with sub-second finality and predictable USDC fees.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <ConnectWalletButton className="shadow-[0_0_40px_#34d39955]" redirectTo="/dashboard" />
+              <ConnectWalletButton className="shadow-[0_0_40px_#34d39955]" />
               <Link href="/pay/TK-1001" className="rounded-full border border-white/10 bg-white/10 px-6 py-3 text-center font-semibold text-white transition hover:bg-white/15">View demo checkout</Link>
             </div>
             <dl className="mt-10 grid max-w-xl grid-cols-3 gap-3">
