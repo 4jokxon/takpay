@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   const { userId, email, businessName, walletAddress } = body;
 
   if (!userId || !email || !walletAddress) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    return NextResponse.json({ error: "Missing required fields", received: { userId: !!userId, email: !!email, walletAddress: !!walletAddress } }, { status: 400 });
   }
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error("[merchants/register] Insert error:", error);
+    return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });
