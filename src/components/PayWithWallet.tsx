@@ -325,9 +325,9 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
           <p className="mt-2 text-sm text-emerald-100/80">This invoice has been paid and verified on Arc testnet.</p>
           {invoice.paidAt ? <p className="mt-2 text-xs text-emerald-100/60">Paid at {new Date(invoice.paidAt).toLocaleString()}</p> : null}
         </div>
-        <button type="button" disabled className="w-full cursor-not-allowed rounded-2xl bg-emerald-400/80 py-4 font-semibold text-black">
-          Payment complete
-        </button>
+        <a href={`/receipt/${invoice.id}`} className="block w-full rounded-2xl bg-emerald-400 py-4 text-center font-semibold text-black transition hover:bg-emerald-300">
+          View receipt
+        </a>
         {explorerTx ? (
           <a className="block text-center text-sm text-sky-300 hover:text-sky-200" href={explorerTx} target="_blank" rel="noreferrer">
             View transaction on Arcscan

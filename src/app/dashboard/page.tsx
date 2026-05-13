@@ -70,7 +70,7 @@ export default async function Dashboard() {
                       <p className="mt-1 text-sm text-zinc-400">{invoice.memo} • {shortAddress(invoice.recipient)}</p>
                     </div>
                     <div className="flex gap-2">
-                      <Link className="rounded-full bg-white px-3 py-2 text-sm font-medium text-black" href={`/pay/${invoice.id}`}>Open</Link>
+                      <Link className="rounded-full bg-white px-3 py-2 text-sm font-medium text-black" href={invoice.status === "paid" ? `/receipt/${invoice.id}` : `/pay/${invoice.id}`}>{invoice.status === "paid" ? "Receipt" : "Open"}</Link>
                       <CopyButton value={invoiceUrl(invoice.id)} label="Copy link" />
                     </div>
                   </div>
