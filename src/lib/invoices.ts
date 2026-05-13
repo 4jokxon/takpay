@@ -26,13 +26,15 @@ export const ARC_USDC = {
   decimals: 6,
 };
 
+export const DEFAULT_MERCHANT_RECIPIENT = "0xcEe2244B58Af2C8ddCa97A4aED0b819C5Fcb6910";
+
 export const demoInvoices: Invoice[] = [
   {
     id: "TK-1001",
     amount: 0.1,
     currency: "USDC",
     memo: "Testnet checkout demo",
-    recipient: "0xcEe2244B58Af2C8ddCa97A4aED0b819C5Fcb6910",
+    recipient: DEFAULT_MERCHANT_RECIPIENT,
     status: "pending",
     createdAt: new Date().toISOString(),
     paidAt: null,
@@ -43,7 +45,7 @@ export const demoInvoices: Invoice[] = [
     amount: 1.25,
     currency: "USDC",
     memo: "Frontend milestone demo",
-    recipient: "0xcEe2244B58Af2C8ddCa97A4aED0b819C5Fcb6910",
+    recipient: DEFAULT_MERCHANT_RECIPIENT,
     status: "paid",
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     paidAt: new Date(Date.now() - 86000000).toISOString(),

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { createInvoiceAction } from "@/app/dashboard/actions";
 import { CopyButton } from "@/components/CopyButton";
 import { listInvoices } from "@/lib/db-invoices";
-import { demoInvoices, invoiceUrl, shortAddress } from "@/lib/invoices";
+import { DEFAULT_MERCHANT_RECIPIENT, invoiceUrl, shortAddress } from "@/lib/invoices";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
   const { invoices, usingFallback, error } = await listInvoices();
-  const defaultRecipient = invoices[0]?.recipient ?? demoInvoices[0].recipient;
+  const defaultRecipient = process.env.NEXT_PUBLIC_DEFAULT_MERCHANT_RECIPIENT ?? DEFAULT_MERCHANT_RECIPIENT;
 
   return (
     <main className="min-h-screen bg-[#05070d] px-6 py-8 text-white">

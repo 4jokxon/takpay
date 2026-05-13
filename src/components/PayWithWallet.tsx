@@ -96,6 +96,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
 
   const explorerTx = useMemo(() => (txHash ? `${ARC_TESTNET.explorerUrl}/tx/${txHash}` : ""), [txHash]);
   const isArc = chainId.toLowerCase() === ARC_TESTNET.chainIdHex;
+  const isPaid = status === "paid" || invoice.status === "paid";
 
   useEffect(() => {
     if (!window.ethereum) return;
@@ -315,6 +316,27 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
   const busy = ["connecting", "switching", "sending", "confirming"].includes(status);
   const canCheckAgain = !!txHash && ["submitted", "error"].includes(status);
 
+  if (isPaid) {
+    return (
+      <div className="mt-5 space-y-4">
+        <div className="rounded-3xl border border-emerald-300/20 bg-emerald-300/10 p-5 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-300 text-2xl text-black">✓</div>
+          <h3 className="mt-4 text-xl font-semibold text-emerald-100">Payment complete</h3>
+          <p className="mt-2 text-sm text-emerald-100/80">This invoice has been paid and verified on Arc testnet.</p>
+          {invoice.paidAt ? <p className="mt-2 text-xs text-emerald-100/60">Paid at {new Date(invoice.paidAt).toLocaleString()}</p> : null}
+        </div>
+        <button type="button" disabled className="w-full cursor-not-allowed rounded-2xl bg-emerald-400/80 py-4 font-semibold text-black">
+          Payment complete
+        </button>
+        {explorerTx ? (
+          <a className="block text-center text-sm text-sky-300 hover:text-sky-200" href={explorerTx} target="_blank" rel="noreferrer">
+            View transaction on Arcscan
+          </a>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="mt-5 space-y-4">
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-zinc-300">
@@ -335,10 +357,10 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
       <button
         type="button"
         onClick={account ? (isArc ? pay : switchToArc) : connectWallet}
-        disabled={busy || status === "paid"}
+        disabled={busy}
         className="w-full rounded-2xl bg-emerald-400 py-4 font-semibold text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {!account ? "Connect wallet" : !isArc ? "Switch to Arc testnet" : status === "paid" ? "Paid" : busy ? "Processing..." : status === "submitted" ? "Send another payment" : "Pay with wallet"}
+        {!account ? "Connect wallet" : !isArc ? "Switch to Arc testnet" : busy ? "Processing..." : status === "submitted" ? "Send another payment" : "Pay with wallet"}
       </button>
 
       {canCheckAgain ? (
@@ -347,7 +369,7 @@ export function PayWithWallet({ invoice }: { invoice: Invoice }) {
         </button>
       ) : null}
 
-      <p className={`text-center text-sm ${status === "error" ? "text-red-300" : status === "paid" ? "text-emerald-300" : status === "submitted" ? "text-amber-300" : "text-zinc-500"}`}>{message}</p>
+      <p className={`text-center text-sm ${status === "error" ? "text-red-300" : status === "submitted" ? "text-amber-300" : "text-zinc-500"}`}>{message}</p>
       {explorerTx ? (
         <a className="block text-center text-sm text-sky-300 hover:text-sky-200" href={explorerTx} target="_blank" rel="noreferrer">
           View transaction on Arcscan
