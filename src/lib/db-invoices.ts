@@ -55,7 +55,12 @@ async function checkAndExpire(invoice: Invoice): Promise<Invoice> {
 }
 
 export function newInvoiceId() {
-  return `TK-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let rand = "";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  for (let i = 0; i < 8; i++) rand += chars[bytes[i] % chars.length];
+  return `TK-${rand}`;
 }
 
 export async function listInvoices(merchantId?: string): Promise<{ invoices: Invoice[]; usingFallback: boolean; error?: string }> {

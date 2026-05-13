@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function WebhookSettings({ merchantId, currentUrl }: { merchantId: string; currentUrl?: string }) {
+export function WebhookSettings({ merchantId, currentUrl, walletAddress }: { merchantId: string; currentUrl?: string; walletAddress: string }) {
   const [url, setUrl] = useState(currentUrl || "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -15,8 +15,11 @@ export function WebhookSettings({ merchantId, currentUrl }: { merchantId: string
     try {
       const res = await fetch("/api/merchants/webhook", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ merchantId, webhookUrl: url }),
+        headers: { 
+          "Content-Type": "application/json",
+          "x-wallet-address": walletAddress,
+        },
+        body: JSON.stringify({ webhookUrl: url }),
       });
       if (res.ok) {
         setMessage("Webhook URL saved");

@@ -94,7 +94,9 @@ export default function Dashboard() {
   }, [isConnected, walletAddress]);
 
   async function loadInvoices(wallet: string) {
-    const res = await fetch(`/api/invoices/list?wallet=${wallet}`);
+    const res = await fetch(`/api/invoices/list`, {
+      headers: { "x-wallet-address": wallet },
+    });
     if (res.ok) {
       const data = await res.json();
       setInvoices(data.invoices || []);
@@ -124,8 +126,11 @@ export default function Dashboard() {
 
     const res = await fetch("/api/invoices/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount, currency, memo, recipient, merchantId, expiryHours }),
+      headers: { 
+        "Content-Type": "application/json",
+        "x-wallet-address": merchantWallet,
+      },
+      body: JSON.stringify({ amount, currency, memo, recipient, expiryHours }),
     });
 
     if (res.ok) {
@@ -386,7 +391,7 @@ export default function Dashboard() {
         {/* Settings Tab */}
         {tab === "settings" && (
           <div className="space-y-6">
-            <WebhookSettings merchantId={merchantId} />
+            <WebhookSettings merchantId={merchantId} walletAddress={merchantWallet} />
           </div>
         )}
       </div>
