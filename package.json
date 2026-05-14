@@ -11,6 +11,7 @@
     "qa:e2e-payment": "node scripts/qa-e2e-payment.mjs"
   },
   "dependencies": {
+    "@circle-fin/bridge-kit": "^1.10.0",
     "@reown/appkit": "^1.8.19",
     "@reown/appkit-adapter-wagmi": "^1.8.19",
     "@supabase/supabase-js": "^2.105.4",
