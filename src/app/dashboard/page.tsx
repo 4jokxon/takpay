@@ -191,6 +191,7 @@ export default function Dashboard() {
             <span className="text-lg font-semibold">TakPay</span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link href="/agent" className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-300 hover:bg-emerald-400/20 transition">🤖 AI Agent</Link>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400">Arc Testnet</span>
             <span className="text-sm text-zinc-400">
               {authMode === "wallet" ? shortAddress(merchantWallet) : userEmail}

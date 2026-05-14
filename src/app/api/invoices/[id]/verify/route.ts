@@ -3,6 +3,7 @@ import { getInvoice, markInvoiceSubmitted, markInvoicePaid } from "@/lib/db-invo
 import { ARC_TESTNET, ARC_USDC } from "@/lib/invoices";
 import { sendWebhook } from "@/lib/webhook";
 import { getSupabaseServer } from "@/lib/supabase";
+import { analyzeFraud, updateAgentMetrics } from "@/lib/agent";
 
 // Known USDC/EURC contract addresses on Arc Testnet
 const VALID_TOKEN_CONTRACTS: Record<string, string[]> = {
@@ -116,6 +117,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ 
       error: `Amount too small. Invoice requires ${invoice.amount} ${invoice.currency}, transaction contains ${verifiedAmount.toFixed(6)}` 
     }, { status: 400 });
+  }
+
+  // AI Agent: Run fraud analysis (non-blocking, best-effort)
+  let fraudResult = null;
+  try {
+    fraudResult = await analyzeFraud({
+      invoiceId: id,
+      amount: invoice.amount,
+      currency: invoice.currency,
+      payerWallet: tx.from || "unknown",
+      recipientWallet: invoice.recipient,
+      txHash,
+      merchantId: invoice.merchantId || undefined,
+    });
+
+    // If critical risk, block the payment
+    if (fraudResult.decision === "reject") {
+      return NextResponse.json({
+        error: "Payment flagged by fraud detection agent",
+        riskScore: fraudResult.riskScore,
+        reasoning: fraudResult.reasoning,
+      }, { status: 403 });
+    }
+
+    // Update metrics if merchant exists
+    if (invoice.merchantId) {
+      updateAgentMetrics(invoice.merchantId, fraudResult.decision, fraudResult.riskScore, 0);
+    }
+  } catch {
+    // Don't block payment if agent fails
   }
 
   // FIX: Atomic update with status check (race condition prevention)
