@@ -1,13 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getWalletBalance, TAKPAY_WALLET } from "@/lib/circle-wallet";
+import { getAuthenticatedMerchant } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Require authentication - don't expose pool balance publicly
+  const merchant = await getAuthenticatedMerchant(request);
+  if (!merchant) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const balances = await getWalletBalance();
 
     return NextResponse.json({
       wallet: {
-        id: TAKPAY_WALLET.id,
         address: TAKPAY_WALLET.address,
       },
       balances,

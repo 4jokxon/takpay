@@ -82,7 +82,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (tx.to?.toLowerCase() === recipientLower && tx.value) {
     verified = true;
     // Convert hex wei to number (Arc uses 18 decimals for native USDC)
-    verifiedAmount = parseInt(tx.value, 16) / 1e18;
+    verifiedAmount = Number(BigInt(tx.value) * BigInt(1000000) / BigInt("1000000000000000000")) / 1e6;
   }
 
   // Case 2: ERC20 transfer(address,uint256) - selector 0xa9059cbb
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           verified = true;
           // Parse amount from calldata (uint256, 6 decimals for USDC/EURC)
           const amountHex = "0x" + tx.input.slice(74, 138);
-          verifiedAmount = parseInt(amountHex, 16) / 1e6;
+          verifiedAmount = Number(BigInt(amountHex)) / 1e6;
         } else {
           return NextResponse.json({ error: "Unrecognized token contract" }, { status: 400 });
         }
@@ -189,8 +189,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         destinationAddress: invoice.merchantWallet,
         amount: invoice.amount.toString(),
       });
-    } catch {
-      // Settlement failure is non-blocking - can be retried manually
+    } catch (err) {
+      // Log settlement errors - don't block payment confirmation
+      console.error("[settlement-error]", id, err instanceof Error ? err.message : err);
     }
   }
 

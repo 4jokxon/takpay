@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Only paid invoices can be refunded" }, { status: 400 });
   }
 
-  // Verify ownership
-  if (invoice.merchantId && invoice.merchantId !== merchant.id) {
+  // Verify ownership - must have merchantId
+  if (!invoice.merchantId || invoice.merchantId !== merchant.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
