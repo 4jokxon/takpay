@@ -20,6 +20,4 @@ ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Merchants can view own payouts"
   ON payouts FOR SELECT
-  USING (merchant_id IN (
-    SELECT id FROM merchants WHERE user_id = auth.uid()
-  ));
+  USING (merchant_id = auth.uid());

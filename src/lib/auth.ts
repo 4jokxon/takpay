@@ -56,11 +56,11 @@ export async function getAuthenticatedMerchant(request: NextRequest) {
       const { data: { user } } = await getSupabaseServer().auth.getUser(token);
       if (!user) return null;
       
-      // Look up merchant by user ID
+      // Look up merchant by user ID (merchants.id = auth.users.id)
       const { data: merchant } = await getSupabaseServer()
         .from("merchants")
         .select("id, wallet_address, webhook_url")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
         .single();
       
       return merchant || null;
