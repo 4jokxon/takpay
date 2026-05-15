@@ -56,16 +56,19 @@ export interface TransferResult {
   destinationAddress: string;
 }
 
+// Arc Testnet native USDC token ID (from Circle API)
+const ARC_USDC_TOKEN_ID = "15dc2b5d-0994-58b0-bf8c-3a0501148ee8";
+
 export async function transferToMerchant(input: {
   destinationAddress: string;
   amount: string; // decimal string e.g. "10.50"
 }): Promise<TransferResult> {
   const client = getClient();
 
-  // Use walletId approach with tokenAddress for native USDC on Arc
+  // Use tokenId for native USDC on Arc Testnet
   const response = await client.createTransaction({
     walletId: CIRCLE_WALLET_ID,
-    tokenAddress: "",
+    tokenId: ARC_USDC_TOKEN_ID,
     destinationAddress: input.destinationAddress,
     amount: [input.amount],
     fee: {
