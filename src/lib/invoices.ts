@@ -12,6 +12,7 @@ export type Invoice = {
   paidTxHash?: string | null;
   expiresAt?: string | null;
   merchantId?: string | null;
+  merchantWallet?: string | null;
 };
 
 export const ARC_TESTNET = {

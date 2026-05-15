@@ -4,6 +4,7 @@ import { ARC_TESTNET, ARC_USDC } from "@/lib/invoices";
 import { sendWebhook } from "@/lib/webhook";
 import { getSupabaseServer } from "@/lib/supabase";
 import { analyzeFraud, updateAgentMetrics } from "@/lib/agent";
+import { transferToMerchant } from "@/lib/circle-wallet";
 
 // Known USDC/EURC contract addresses on Arc Testnet
 const VALID_TOKEN_CONTRACTS: Record<string, string[]> = {
@@ -180,5 +181,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
   }
 
-  return NextResponse.json({ message: "Payment verified", status: "paid" });
+  // Auto-settle: transfer USDC from TakPay pool to merchant wallet (best-effort)
+  let settlement = null;
+  if (invoice.merchantWallet) {
+    try {
+      settlement = await transferToMerchant({
+        destinationAddress: invoice.merchantWallet,
+        amount: invoice.amount.toString(),
+      });
+    } catch {
+      // Settlement failure is non-blocking - can be retried manually
+    }
+  }
+
+  return NextResponse.json({ message: "Payment verified", status: "paid", settlement });
 }

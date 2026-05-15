@@ -13,6 +13,7 @@ type DbInvoice = {
   created_at: string;
   merchant_id: string | null;
   expires_at: string | null;
+  merchant_wallet: string | null;
 };
 
 function toInvoice(row: DbInvoice): Invoice {
@@ -28,6 +29,7 @@ function toInvoice(row: DbInvoice): Invoice {
     paidTxHash: row.paid_tx_hash,
     expiresAt: row.expires_at,
     merchantId: row.merchant_id,
+    merchantWallet: row.merchant_wallet,
   };
 }
 
@@ -67,7 +69,7 @@ export async function listInvoices(merchantId?: string): Promise<{ invoices: Inv
   try {
     let query = getSupabaseServer()
       .from("invoices")
-      .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at")
+      .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at, merchant_wallet")
       .order("created_at", { ascending: false })
       .limit(25);
 
@@ -92,7 +94,7 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
   try {
     const { data, error } = await getSupabaseServer()
       .from("invoices")
-      .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at")
+      .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at, merchant_wallet")
       .eq("id", id)
       .maybeSingle();
 
@@ -111,7 +113,7 @@ export async function getInvoice(id: string): Promise<Invoice | null> {
 /** Default expiry: 24 hours from now */
 const DEFAULT_EXPIRY_HOURS = 24;
 
-export async function createInvoice(input: { amount: number; currency: "USDC" | "EURC"; memo: string; recipient: string; merchantId?: string; expiryHours?: number }) {
+export async function createInvoice(input: { amount: number; currency: "USDC" | "EURC"; memo: string; recipient: string; merchantId?: string; merchantWallet?: string; expiryHours?: number }) {
   const id = newInvoiceId();
   const hours = input.expiryHours ?? DEFAULT_EXPIRY_HOURS;
   const expiresAt = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
@@ -126,9 +128,10 @@ export async function createInvoice(input: { amount: number; currency: "USDC" | 
       recipient: input.recipient,
       status: "pending",
       merchant_id: input.merchantId ?? null,
+      merchant_wallet: input.merchantWallet ?? null,
       expires_at: expiresAt,
     })
-    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at")
+    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at, merchant_wallet")
     .single();
 
   if (error) throw error;
@@ -142,7 +145,7 @@ export async function markInvoiceSubmitted(id: string, txHash: string) {
     .eq("id", id)
     .neq("status", "paid")
     .neq("status", "expired")
-    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at")
+    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at, merchant_wallet")
     .single();
 
   if (error) throw error;
@@ -154,7 +157,7 @@ export async function markInvoicePaid(id: string, txHash: string) {
     .from("invoices")
     .update({ status: "paid", paid_tx_hash: txHash, paid_at: new Date().toISOString() })
     .eq("id", id)
-    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at")
+    .select("id, amount, currency, memo, recipient, status, paid_tx_hash, paid_at, created_at, merchant_id, expires_at, merchant_wallet")
     .single();
 
   if (error) throw error;
