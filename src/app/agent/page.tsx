@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { ConnectWalletButton } from "@/components/ConnectWalletButton";
+import { CrossChainRefund } from "@/components/CrossChainRefund";
 
 type AgentDecision = {
   id: string;
@@ -99,7 +100,21 @@ export default function AgentDashboard() {
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [refunds, setRefunds] = useState<RefundRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"overview" | "decisions" | "refunds">("overview");
+  const [tab, setTab] = useState<"overview" | "decisions" | "refunds" | "new_refund">("overview");
+  const [refundInvoiceId, setRefundInvoiceId] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundResult, setRefundResult] = useState<{
+    refund: { id: string; status: string };
+    agentDecision: { decision: string; riskScore: number; reasoning: string; confidence: number; suggestedRoute: string };
+    routing: { recommendedRoute: string; estimatedFee: number; estimatedTime: string; reasoning: string };
+  } | null>(null);
+  const [activeRefundForBridge, setActiveRefundForBridge] = useState<{
+    id: string;
+    invoiceId: string;
+    amount: number;
+    currency: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!isConnected || !walletAddress) {
@@ -211,7 +226,7 @@ export default function AgentDashboard() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 flex gap-2">
+        <div className="mb-6 flex gap-2 flex-wrap">
           <button onClick={() => setTab("overview")} className={`rounded-full px-5 py-2 text-sm font-medium transition ${tab === "overview" ? "bg-emerald-400 text-black" : "border border-white/10 text-zinc-400 hover:bg-white/5"}`}>
             Overview
           </button>
@@ -220,6 +235,9 @@ export default function AgentDashboard() {
           </button>
           <button onClick={() => setTab("refunds")} className={`rounded-full px-5 py-2 text-sm font-medium transition ${tab === "refunds" ? "bg-emerald-400 text-black" : "border border-white/10 text-zinc-400 hover:bg-white/5"}`}>
             Refunds ({refunds.length})
+          </button>
+          <button onClick={() => setTab("new_refund")} className={`rounded-full px-5 py-2 text-sm font-medium transition ${tab === "new_refund" ? "bg-emerald-400 text-black" : "border border-white/10 text-zinc-400 hover:bg-white/5"}`}>
+            + New Refund
           </button>
         </div>
 
@@ -340,7 +358,17 @@ export default function AgentDashboard() {
                         </span>
                         <span className="text-sm font-medium">{r.amount} {r.currency}</span>
                       </div>
-                      <span className="text-xs text-zinc-500">{timeAgo(r.created_at)}</span>
+                      <div className="flex items-center gap-2">
+                        {r.status === "approved" && (
+                          <button
+                            onClick={() => setActiveRefundForBridge({ id: r.id, invoiceId: r.invoice_id, amount: r.amount, currency: r.currency })}
+                            className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-300 hover:bg-emerald-400/20 transition"
+                          >
+                            Execute Bridge
+                          </button>
+                        )}
+                        <span className="text-xs text-zinc-500">{timeAgo(r.created_at)}</span>
+                      </div>
                     </div>
                     <p className="text-sm text-zinc-300">{r.reason}</p>
                     <div className="mt-2 flex items-center gap-4 text-xs text-zinc-500">
@@ -352,6 +380,217 @@ export default function AgentDashboard() {
                 ))}
               </div>
             )}
+
+            {/* Bridge Execution Panel */}
+            {activeRefundForBridge && (
+              <div className="mt-6">
+                <CrossChainRefund
+                  refundRequestId={activeRefundForBridge.id}
+                  amount={activeRefundForBridge.amount}
+                  currency={activeRefundForBridge.currency}
+                  invoiceId={activeRefundForBridge.invoiceId}
+                  onComplete={(txHash) => {
+                    setActiveRefundForBridge(null);
+                    // Reload metrics
+                    window.location.reload();
+                  }}
+                  onError={(err) => {
+                    console.error("Bridge error:", err);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* New Refund Tab */}
+        {tab === "new_refund" && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Refund Request Form */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+              <h3 className="mb-4 text-lg font-semibold">Request Refund</h3>
+              <p className="mb-6 text-sm text-zinc-400">
+                The AI agent will analyze the refund request and decide whether to auto-approve, flag for review, or reject.
+              </p>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!walletAddress || !refundInvoiceId || !refundReason) return;
+
+                  setRefundSubmitting(true);
+                  setRefundResult(null);
+
+                  try {
+                    const res = await fetch("/api/agent/refund", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "x-wallet-address": walletAddress,
+                      },
+                      body: JSON.stringify({
+                        invoiceId: refundInvoiceId,
+                        reason: refundReason,
+                        destinationChain: "arc",
+                      }),
+                    });
+
+                    const data = await res.json();
+                    if (res.ok) {
+                      setRefundResult(data);
+                      if (data.refund.status === "approved") {
+                        setActiveRefundForBridge({
+                          id: data.refund.id,
+                          invoiceId: refundInvoiceId,
+                          amount: 0, // Will be filled from response
+                          currency: "USDC",
+                        });
+                      }
+                    } else {
+                      setRefundResult(null);
+                      alert(data.error || "Failed to submit refund");
+                    }
+                  } catch (err) {
+                    alert("Network error");
+                  }
+                  setRefundSubmitting(false);
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-400">Invoice ID</label>
+                  <input
+                    type="text"
+                    value={refundInvoiceId}
+                    onChange={(e) => setRefundInvoiceId(e.target.value)}
+                    placeholder="TK-XXXXXXXX"
+                    required
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-400/50 placeholder:text-zinc-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-zinc-400">Reason for Refund</label>
+                  <textarea
+                    value={refundReason}
+                    onChange={(e) => setRefundReason(e.target.value)}
+                    placeholder="Describe why this payment should be refunded..."
+                    required
+                    rows={3}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-400/50 placeholder:text-zinc-600 resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={refundSubmitting || !refundInvoiceId || !refundReason}
+                  className={`w-full rounded-xl py-3 text-sm font-semibold transition ${
+                    refundSubmitting
+                      ? "cursor-not-allowed bg-zinc-700 text-zinc-400"
+                      : "bg-emerald-400 text-black hover:bg-emerald-300"
+                  }`}
+                >
+                  {refundSubmitting ? "Agent Analyzing..." : "Submit to AI Agent"}
+                </button>
+              </form>
+            </div>
+
+            {/* Agent Decision Result */}
+            <div className="space-y-4">
+              {refundResult ? (
+                <>
+                  {/* Decision Card */}
+                  <div className={`rounded-2xl border p-6 backdrop-blur-sm ${
+                    refundResult.agentDecision.decision === "approve"
+                      ? "border-emerald-400/20 bg-emerald-400/5"
+                      : refundResult.agentDecision.decision === "reject"
+                      ? "border-red-400/20 bg-red-400/5"
+                      : "border-amber-400/20 bg-amber-400/5"
+                  }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-lg font-semibold">Agent Decision</h4>
+                      <span className={`rounded-full px-3 py-1 text-sm font-bold ${
+                        refundResult.agentDecision.decision === "approve"
+                          ? "bg-emerald-400/20 text-emerald-300"
+                          : refundResult.agentDecision.decision === "reject"
+                          ? "bg-red-400/20 text-red-300"
+                          : "bg-amber-400/20 text-amber-300"
+                      }`}>
+                        {refundResult.agentDecision.decision.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">Risk Score</span>
+                        <span className={`font-bold ${riskColor(refundResult.agentDecision.riskScore)}`}>
+                          {refundResult.agentDecision.riskScore}/100
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">Confidence</span>
+                        <span className="text-white">{(refundResult.agentDecision.confidence * 100).toFixed(0)}%</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">Route</span>
+                        <span className="text-white">{refundResult.agentDecision.suggestedRoute}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                      <p className="text-xs text-zinc-500 mb-1">Reasoning</p>
+                      <p className="text-sm text-zinc-300">{refundResult.agentDecision.reasoning}</p>
+                    </div>
+                  </div>
+
+                  {/* Routing Card */}
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm">
+                    <h4 className="text-lg font-semibold mb-3">Routing Optimization</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">Route</span>
+                        <span className="text-emerald-300 font-medium">{refundResult.routing.recommendedRoute}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">Estimated Fee</span>
+                        <span className="text-white">${refundResult.routing.estimatedFee}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-zinc-400">Estimated Time</span>
+                        <span className="text-white">{refundResult.routing.estimatedTime}</span>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xs text-zinc-500">{refundResult.routing.reasoning}</p>
+                  </div>
+
+                  {/* Execute Bridge (if approved) */}
+                  {refundResult.refund.status === "approved" && activeRefundForBridge && (
+                    <CrossChainRefund
+                      refundRequestId={activeRefundForBridge.id}
+                      amount={activeRefundForBridge.amount}
+                      currency={activeRefundForBridge.currency}
+                      invoiceId={activeRefundForBridge.invoiceId}
+                      onComplete={() => {
+                        setActiveRefundForBridge(null);
+                        setRefundResult(null);
+                        setRefundInvoiceId("");
+                        setRefundReason("");
+                        setTab("refunds");
+                      }}
+                      onError={(err) => console.error("Bridge error:", err)}
+                    />
+                  )}
+                </>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm flex flex-col items-center justify-center py-12">
+                  <div className="mb-4 text-5xl">🤖</div>
+                  <h4 className="text-lg font-semibold mb-2">AI Agent Ready</h4>
+                  <p className="text-sm text-zinc-400 text-center max-w-sm">
+                    Submit a refund request and the agent will analyze it in real-time. It checks merchant history, timing, amount patterns, and recommends the optimal cross-chain route.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
