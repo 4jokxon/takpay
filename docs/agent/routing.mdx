@@ -1,0 +1,24 @@
+---
+title: Routing
+description: Stablecoin route optimization for direct and cross-chain payments.
+---
+
+# Routing
+
+TakPay includes routing logic for stablecoin movement.
+
+## Route types
+
+- `direct_arc`: same-chain Arc transfer
+- `cctp_bridge`: cross-chain USDC route with Circle CCTP
+- `nanopayment`: low-value payment route for tiny amounts
+
+## Supported testnet chains
+
+- Arc Testnet
+- Ethereum Sepolia
+- Base Sepolia
+- Arbitrum Sepolia
+- Polygon Amoy
+
+Routing is currently used as an intelligence layer and can be connected to client-side Circle BridgeKit execution.

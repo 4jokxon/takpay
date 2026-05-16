@@ -1,0 +1,24 @@
+---
+title: Circle Wallets
+description: Settlement pool using Circle Developer-Controlled Wallets.
+---
+
+# Circle Developer-Controlled Wallets
+
+TakPay integrates Circle Developer-Controlled Wallets as a settlement pool.
+
+Instead of sending every payment directly to the merchant wallet, TakPay can route funds through a controlled wallet, then settle to merchants.
+
+## Why settlement pool matters
+
+- Enables automated merchant payout
+- Supports refund workflows
+- Makes reconciliation easier
+- Prepares cross-chain settlement flows
+- Provides a foundation for merchant balances
+
+## Important implementation note
+
+For native Arc Testnet USDC transfers through Circle, TakPay uses Circle `tokenId`, not a blank `tokenAddress`.
+
+Using `tokenAddress: ""` for native tokens causes Circle API parameter errors.

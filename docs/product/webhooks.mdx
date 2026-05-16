@@ -1,0 +1,40 @@
+---
+title: Webhooks
+description: Receive invoice lifecycle events in external systems.
+---
+
+# Webhooks
+
+TakPay can notify merchant systems when invoice events happen.
+
+## Supported events
+
+- `invoice.paid`
+- `invoice.expired`
+
+## Payload shape
+
+```json
+{
+  "event": "invoice.paid",
+  "invoice_id": "inv_...",
+  "amount": "10.00",
+  "currency": "USDC",
+  "memo": "Design work invoice",
+  "recipient": "0x...",
+  "tx_hash": "0x...",
+  "paid_at": "2026-05-16T00:00:00.000Z"
+}
+```
+
+## Signature
+
+Webhook payloads are signed with HMAC-SHA256 and sent with:
+
+```txt
+X-TakPay-Signature: sha256=<signature>
+```
+
+## Delivery model
+
+Webhook delivery is best-effort with a 5 second timeout. A production version should add retry queues and delivery logs.

@@ -1,0 +1,38 @@
+---
+title: Pay invoice
+description: Verifies a submitted payment and marks the invoice as paid. Public payer endpoint.
+---
+
+# Pay invoice
+
+<Endpoint method="POST" path="/api/invoices/{id}/pay" />
+
+Verifies a submitted payment and marks the invoice as paid. Public payer endpoint.
+
+## Endpoint
+
+```txt
+POST /api/invoices/{id}/pay
+```
+
+## Request body
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "invoice": { "id": "...", "status": "paid" },
+  "verified": true,
+  "settlement": { "attempted": true }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "TakPay",
+  "colors": {
+    "primary": "#10b981",
+    "light": "#10b981",
+    "dark": "#34d399"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guide",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "concepts/how-it-works"]
+          },
+          {
+            "group": "Core Product",
+            "pages": ["product/invoices", "product/checkout", "product/receipts", "product/webhooks"]
+          },
+          {
+            "group": "Intelligence",
+            "pages": ["agent/overview", "agent/fraud-detection", "agent/refunds", "agent/routing"]
+          },
+          {
+            "group": "Settlement",
+            "pages": ["settlement/circle-wallets", "settlement/payouts"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Invoices",
+            "pages": ["api-reference/invoices/create", "api-reference/invoices/list", "api-reference/invoices/submit", "api-reference/invoices/verify", "api-reference/invoices/pay"]
+          },
+          {
+            "group": "Agent",
+            "pages": ["api-reference/agent/analyze", "api-reference/agent/refund", "api-reference/agent/metrics"]
+          },
+          {
+            "group": "Wallet",
+            "pages": ["api-reference/wallet/balance", "api-reference/wallet/transfer", "api-reference/wallet/transaction"]
+          },
+          {
+            "group": "Merchants",
+            "pages": ["api-reference/merchants/wallet-auth", "api-reference/merchants/webhook"]
+          }
+        ]
+      },
+      {
+        "tab": "Build",
+        "groups": [
+          {
+            "group": "Engineering",
+            "pages": ["build/architecture", "build/security", "build/environment", "build/hackathon"]
+          }
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo-light.svg",
+    "dark": "/logo-dark.svg"
+  },
+  "navbar": {
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/4jokxon/takpay" }
+    ],
+    "primary": { "type": "button", "label": "Open App", "href": "https://takpay.vercel.app" }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/4jokxon/takpay"
+    }
+  }
+}

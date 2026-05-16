@@ -1,0 +1,29 @@
+---
+title: Wallet balance
+description: Returns TakPay settlement pool wallet balances. Requires authentication.
+---
+
+# Wallet balance
+
+<Endpoint method="GET" path="/api/wallet/balance" />
+
+Returns TakPay settlement pool wallet balances. Requires authentication.
+
+## Endpoint
+
+```txt
+GET /api/wallet/balance
+```
+
+## Response
+
+```json
+{
+  "wallet": { "address": "0x..." },
+  "balances": []
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

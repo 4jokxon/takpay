@@ -1,0 +1,49 @@
+---
+title: Architecture
+description: TakPay system architecture.
+---
+
+# Architecture
+
+## Stack
+
+- Next.js 16
+- React 19
+- Supabase
+- Reown AppKit
+- wagmi + viem
+- Arc Testnet
+- Circle Developer-Controlled Wallets
+- Vercel
+
+## Components
+
+```txt
+Merchant Dashboard
+  -> Invoice API
+  -> Supabase
+
+Public Checkout
+  -> Reown AppKit
+  -> Arc Testnet USDC transfer
+  -> Verification API
+
+Verification API
+  -> Arc RPC
+  -> Agent Engine
+  -> Supabase status update
+  -> Webhook delivery
+  -> Circle settlement
+
+Agent Dashboard
+  -> Agent APIs
+  -> agent_decisions / refund_requests / agent_metrics
+```
+
+## Key libraries
+
+- `src/lib/verify-payment.ts`: Arc transaction verification
+- `src/lib/agent.ts`: decision engine
+- `src/lib/webhook.ts`: signed webhook delivery
+- `src/lib/circle-wallet.ts`: Circle wallet settlement
+- `src/lib/cctp.ts`: cross-chain routing configuration

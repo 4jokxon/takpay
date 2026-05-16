@@ -1,0 +1,38 @@
+---
+title: Verify payment
+description: Verifies a transaction on Arc RPC, runs agent analysis, updates invoice status, sends webhook, and attempts settlement.
+---
+
+# Verify payment
+
+<Endpoint method="POST" path="/api/invoices/{id}/verify" />
+
+Verifies a transaction on Arc RPC, runs agent analysis, updates invoice status, sends webhook, and attempts settlement.
+
+## Endpoint
+
+```txt
+POST /api/invoices/{id}/verify
+```
+
+## Request body
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "message": "Payment verified",
+  "status": "paid",
+  "settlement": { "attempted": true }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

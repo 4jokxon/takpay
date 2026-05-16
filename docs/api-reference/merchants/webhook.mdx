@@ -1,0 +1,36 @@
+---
+title: Configure webhook
+description: Stores a merchant webhook URL with HTTPS and private-IP SSRF protections. Requires authentication.
+---
+
+# Configure webhook
+
+<Endpoint method="POST" path="/api/merchants/webhook" />
+
+Stores a merchant webhook URL with HTTPS and private-IP SSRF protections. Requires authentication.
+
+## Endpoint
+
+```txt
+POST /api/merchants/webhook
+```
+
+## Request body
+
+```json
+{
+  "webhookUrl": "https://example.com/takpay/webhook"
+}
+```
+
+## Response
+
+```json
+{
+  "success": true
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

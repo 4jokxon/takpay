@@ -1,0 +1,40 @@
+---
+title: Wallet auth
+description: Creates or loads a merchant by wallet address.
+---
+
+# Wallet auth
+
+<Endpoint method="POST" path="/api/merchants/wallet-auth" />
+
+Creates or loads a merchant by wallet address.
+
+## Endpoint
+
+```txt
+POST /api/merchants/wallet-auth
+```
+
+## Request body
+
+```json
+{
+  "walletAddress": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "success": true,
+  "merchant": {
+    "id": "...",
+    "wallet_address": "0x..."
+  }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

@@ -1,0 +1,39 @@
+---
+title: Invoices
+description: Payment links for stablecoin transactions.
+---
+
+# Invoices
+
+Invoices are the core object in TakPay.
+
+An invoice represents a requested stablecoin payment with amount, currency, memo, recipient, status, and payment metadata.
+
+## Fields
+
+- `id`: invoice identifier
+- `amount`: requested payment amount
+- `currency`: `USDC` or `EURC`
+- `memo`: merchant note or customer-facing description
+- `recipient`: merchant or TakPay pool wallet address
+- `status`: `pending`, `submitted`, `paid`, or `expired`
+- `paid_tx_hash`: confirmed transaction hash
+- `paid_at`: payment timestamp
+- `expires_at`: optional expiry timestamp
+- `created_at`: invoice creation timestamp
+
+## Dashboard flow
+
+The merchant dashboard can:
+
+- Create invoices
+- List recent invoices
+- Open checkout pages
+- Open receipts
+- Track payment status
+
+## Public checkout URL
+
+```txt
+/pay/{invoiceId}
+```

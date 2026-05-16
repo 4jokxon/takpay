@@ -1,0 +1,27 @@
+---
+title: Payouts
+description: Merchant disbursement from TakPay settlement pool.
+---
+
+# Payouts
+
+TakPay can transfer funds from the settlement pool to merchant wallets.
+
+## Payout route
+
+```txt
+POST /api/wallet/transfer
+```
+
+## Required checks
+
+A production payout route must enforce:
+
+- Strong merchant authentication
+- Cryptographic wallet signature or session auth
+- Balance entitlement checks
+- Previous payout accounting
+- Destination wallet validation
+- Replay protection
+
+TakPay includes balance tracking logic to prevent merchants from withdrawing more than their paid invoice total minus previous payouts.

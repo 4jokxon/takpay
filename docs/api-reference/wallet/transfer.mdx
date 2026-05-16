@@ -1,0 +1,39 @@
+---
+title: Transfer payout
+description: Transfers earned funds from TakPay settlement pool to a merchant wallet. Requires authentication and entitlement checks.
+---
+
+# Transfer payout
+
+<Endpoint method="POST" path="/api/wallet/transfer" />
+
+Transfers earned funds from TakPay settlement pool to a merchant wallet. Requires authentication and entitlement checks.
+
+## Endpoint
+
+```txt
+POST /api/wallet/transfer
+```
+
+## Request body
+
+```json
+{
+  "amount": "10.00",
+  "destinationAddress": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "message": "Transfer initiated",
+  "transfer": { "id": "...", "state": "INITIATED" },
+  "remainingBalance": "90.00"
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

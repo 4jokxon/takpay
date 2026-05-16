@@ -1,0 +1,40 @@
+---
+title: Submit transaction
+description: Stores a tx hash while the payment is still pending confirmation.
+---
+
+# Submit transaction
+
+<Endpoint method="POST" path="/api/invoices/{id}/submit" />
+
+Stores a tx hash while the payment is still pending confirmation.
+
+## Endpoint
+
+```txt
+POST /api/invoices/{id}/submit
+```
+
+## Request body
+
+```json
+{
+  "txHash": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "invoice": {
+    "id": "...",
+    "status": "submitted",
+    "paid_tx_hash": "0x..."
+  }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

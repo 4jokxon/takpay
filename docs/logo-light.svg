@@ -1,0 +1,6 @@
+<svg width="220" height="56" viewBox="0 0 220 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="56" height="56" rx="14" fill="#020617"/>
+  <path d="M14 16H42V23H32V42H24V23H14V16Z" fill="#34D399"/>
+  <path d="M17 35C20 30 25 28 32 28H42V35H34C30 35 27 36 25 40L23 42H16L17 35Z" fill="#2DD4BF"/>
+  <text x="70" y="36" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#0F172A">TakPay</text>
+</svg>

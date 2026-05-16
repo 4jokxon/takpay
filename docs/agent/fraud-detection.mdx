@@ -1,0 +1,25 @@
+---
+title: Fraud detection
+description: Risk scoring for payment verification.
+---
+
+# Fraud detection
+
+The fraud engine analyzes invoices and payment context before finalizing a payment.
+
+## Example checks
+
+- New wallet risk
+- High amount risk
+- Velocity risk
+- Self-payment patterns
+- Suspicious round-number behavior
+
+## Risk handling
+
+- Low risk: approve
+- Medium risk: approve or flag depending on rule mix
+- High risk: flag for review
+- Critical risk: reject or block
+
+TakPay can block critical-risk payments during verification while still allowing normal low-risk payments to settle.

@@ -1,0 +1,35 @@
+---
+title: List invoices
+description: Returns recent invoices for the authenticated merchant.
+---
+
+# List invoices
+
+<Endpoint method="GET" path="/api/invoices/list" />
+
+Returns recent invoices for the authenticated merchant.
+
+## Endpoint
+
+```txt
+GET /api/invoices/list
+```
+
+## Response
+
+```json
+{
+  "invoices": [
+    {
+      "id": "...",
+      "amount": "10.00",
+      "currency": "USDC",
+      "status": "paid"
+    }
+  ]
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

@@ -1,0 +1,46 @@
+---
+title: Analyze payment risk
+description: Runs manual fraud analysis for an invoice. Requires merchant authentication.
+---
+
+# Analyze payment risk
+
+<Endpoint method="POST" path="/api/agent/analyze" />
+
+Runs manual fraud analysis for an invoice. Requires merchant authentication.
+
+## Endpoint
+
+```txt
+POST /api/agent/analyze
+```
+
+## Request body
+
+```json
+{
+  "invoiceId": "...",
+  "payerWallet": "0x...",
+  "txHash": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "analysis": {
+    "invoiceId": "...",
+    "riskScore": 20,
+    "riskLevel": "low",
+    "decision": "approve",
+    "reasoning": "No high-risk signals detected",
+    "flags": [],
+    "confidence": 0.85
+  }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

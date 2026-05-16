@@ -1,0 +1,43 @@
+---
+title: Security
+description: Payment verification and settlement security model.
+---
+
+# Security
+
+TakPay treats payment verification as a backend responsibility.
+
+## Main protections
+
+- On-chain transaction lookup through Arc RPC
+- Recipient verification
+- Amount verification
+- Token contract verification
+- Transaction receipt confirmation
+- Replay protection for tx hashes
+- Atomic invoice status update
+- Webhook SSRF guard
+- HMAC webhook signatures
+- Merchant entitlement checks for payouts
+
+## Common threats
+
+### Fake transaction hash
+
+A customer submits a random hash. TakPay rejects it if the transaction does not exist or is not confirmed.
+
+### Wrong recipient
+
+A customer sends funds to another address. TakPay rejects it because recipient does not match invoice.
+
+### Insufficient amount
+
+A customer sends less than requested. TakPay rejects it because amount is lower than invoice amount.
+
+### Replay attack
+
+A customer reuses one valid tx hash for multiple invoices. TakPay blocks this with tx hash uniqueness checks.
+
+### Payout abuse
+
+A merchant attempts to withdraw more than earned. TakPay tracks paid invoices and previous payouts before transfer.

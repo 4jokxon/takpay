@@ -1,0 +1,45 @@
+---
+title: Create invoice
+description: Creates a new merchant invoice. Requires merchant authentication.
+---
+
+# Create invoice
+
+<Endpoint method="POST" path="/api/invoices/create" />
+
+Creates a new merchant invoice. Requires merchant authentication.
+
+## Endpoint
+
+```txt
+POST /api/invoices/create
+```
+
+## Request body
+
+```json
+{
+  "amount": "10.00",
+  "currency": "USDC",
+  "memo": "Design work invoice",
+  "recipient": "0x...",
+  "expiryHours": 24
+}
+```
+
+## Response
+
+```json
+{
+  "invoice": {
+    "id": "...",
+    "amount": "10.00",
+    "currency": "USDC",
+    "status": "pending"
+  }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

@@ -1,0 +1,35 @@
+---
+title: How it works
+description: The complete TakPay payment lifecycle.
+---
+
+# How it works
+
+## Payment lifecycle
+
+1. Merchant creates an invoice from the dashboard.
+2. TakPay stores the invoice in Supabase.
+3. Merchant shares the public payment link.
+4. Customer opens the checkout page.
+5. Customer connects wallet with Reown AppKit.
+6. Customer sends USDC on Arc Testnet.
+7. TakPay receives or accepts the transaction hash.
+8. Backend fetches the transaction from Arc RPC.
+9. Backend validates recipient, amount, token, and status.
+10. Agent layer analyzes risk.
+11. Invoice is atomically marked as `paid` if valid.
+12. Webhook and settlement flows are triggered.
+13. Receipt becomes available.
+
+## Invoice states
+
+- `pending`: invoice is created but no transaction has been submitted.
+- `submitted`: customer submitted a tx hash, but confirmation is still pending.
+- `paid`: transaction is confirmed and valid.
+- `expired`: invoice passed its expiry time before payment.
+
+## Verification model
+
+TakPay does not trust frontend state. Payment status is determined by backend verification against Arc RPC.
+
+This protects merchants from fake tx hashes, wrong recipients, insufficient amounts, and replayed transactions.

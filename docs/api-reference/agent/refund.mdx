@@ -1,0 +1,41 @@
+---
+title: Request refund
+description: Creates a refund request and returns an agent decision plus route recommendation. Requires merchant authentication.
+---
+
+# Request refund
+
+<Endpoint method="POST" path="/api/agent/refund" />
+
+Creates a refund request and returns an agent decision plus route recommendation. Requires merchant authentication.
+
+## Endpoint
+
+```txt
+POST /api/agent/refund
+```
+
+## Request body
+
+```json
+{
+  "invoiceId": "...",
+  "reason": "Customer requested refund",
+  "destinationChain": "arc",
+  "destinationWallet": "0x..."
+}
+```
+
+## Response
+
+```json
+{
+  "refund": { "id": "...", "status": "pending", "createdAt": "..." },
+  "agentDecision": { "decision": "approve", "riskScore": 15 },
+  "routing": { "route": "direct_arc" }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

@@ -1,0 +1,24 @@
+---
+title: Refunds
+description: Agent-assisted refund decisions.
+---
+
+# Refunds
+
+TakPay can evaluate refund requests using its agent decision engine.
+
+## Inputs
+
+- Invoice ID
+- Refund reason
+- Destination chain
+- Destination wallet
+- Merchant history
+- Amount
+- Time since payment
+
+## Output
+
+The agent recommends whether to approve, flag, or reject a refund request.
+
+It also creates a `refund_requests` record to track the lifecycle.

@@ -1,0 +1,75 @@
+---
+title: Quickstart
+description: Create an invoice and verify a USDC payment.
+---
+
+# Quickstart
+
+This guide shows the basic TakPay flow.
+
+## 1. Connect as a merchant
+
+Open the TakPay dashboard and connect your wallet or sign in with email.
+
+```txt
+/dashboard
+```
+
+TakPay creates or loads a merchant profile for the connected wallet.
+
+## 2. Create an invoice
+
+Create an invoice with:
+
+- Amount
+- Currency, currently `USDC` or `EURC`
+- Memo
+- Recipient wallet
+- Optional expiry window
+
+Example request:
+
+```bash
+curl -X POST "$TAKPAY_URL/api/invoices/create"   -H "Content-Type: application/json"   -d '{
+    "amount": "10.00",
+    "currency": "USDC",
+    "memo": "Design work invoice",
+    "recipient": "0xYourMerchantWallet",
+    "expiryHours": 24
+  }'
+```
+
+## 3. Share the payment link
+
+Each invoice has a public checkout URL:
+
+```txt
+/pay/{invoiceId}
+```
+
+Customers can open the page, connect wallet, and pay with USDC on Arc Testnet.
+
+## 4. Verify the transaction
+
+TakPay verifies the transaction on-chain. It checks:
+
+- Transaction hash format
+- Confirmation status
+- Recipient match
+- Amount match
+- Replay protection
+- Invoice status
+
+Manual verification endpoint:
+
+```bash
+curl -X POST "$TAKPAY_URL/api/invoices/{invoiceId}/verify"   -H "Content-Type: application/json"   -d '{ "txHash": "0x..." }'
+```
+
+## 5. View receipt
+
+After successful verification, the invoice becomes `paid` and the receipt is available at:
+
+```txt
+/receipt/{invoiceId}
+```

@@ -1,0 +1,31 @@
+---
+title: Transaction status
+description: Returns Circle transaction status for a settlement transfer.
+---
+
+# Transaction status
+
+<Endpoint method="GET" path="/api/wallet/transaction/{id}" />
+
+Returns Circle transaction status for a settlement transfer.
+
+## Endpoint
+
+```txt
+GET /api/wallet/transaction/{id}
+```
+
+## Response
+
+```json
+{
+  "transaction": {
+    "id": "...",
+    "state": "COMPLETE"
+  }
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

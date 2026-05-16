@@ -1,0 +1,36 @@
+---
+title: Agent metrics
+description: Returns merchant-level decision metrics. Requires authentication.
+---
+
+# Agent metrics
+
+<Endpoint method="GET" path="/api/agent/metrics" />
+
+Returns merchant-level decision metrics. Requires authentication.
+
+## Endpoint
+
+```txt
+GET /api/agent/metrics
+```
+
+## Response
+
+```json
+{
+  "totals": {
+    "totalDecisions": 10,
+    "fraudFlags": 1,
+    "autoApprovals": 8,
+    "autoRejections": 1
+  },
+  "dailyMetrics": [],
+  "recentDecisions": [],
+  "refunds": []
+}
+```
+
+## Notes
+
+All protected endpoints should be called from an authenticated merchant session. Public payer endpoints still validate all payment data server-side.

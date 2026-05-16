@@ -1,0 +1,34 @@
+---
+title: Environment
+description: Environment variables needed to run TakPay.
+---
+
+# Environment
+
+## Supabase
+
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+## Circle
+
+```env
+CIRCLE_API_KEY=
+CIRCLE_ENTITY_SECRET=
+CIRCLE_WALLET_SET_ID=
+CIRCLE_WALLET_ID=
+CIRCLE_WALLET_ADDRESS=
+```
+
+## App
+
+```env
+NEXT_PUBLIC_APP_URL=
+```
+
+Never expose service-role keys, Circle API keys, entity secrets, or wallet private keys in frontend code.

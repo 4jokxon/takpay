@@ -1,0 +1,34 @@
+---
+title: Payment Intelligence Agent
+description: Rule-based decision engine for payment risk, refunds, and routing.
+---
+
+# Payment Intelligence Agent
+
+TakPay includes an agent layer that analyzes payment operations and records decisions for auditability.
+
+The current implementation is rule-based. This makes it deterministic, low-cost, explainable, and easier to audit.
+
+## Capabilities
+
+- Fraud detection
+- Risk scoring
+- Refund decision engine
+- Cross-chain routing optimization
+- Agent decision logs
+- Daily metrics
+
+## Decision outputs
+
+Agent decisions return:
+
+- `riskScore`: 0 to 100
+- `riskLevel`: `low`, `medium`, `high`, or `critical`
+- `decision`: `approve`, `flag`, or `reject`
+- `reasoning`: human-readable explanation
+- `flags`: rule matches
+- `confidence`: confidence score
+
+## Audit trail
+
+Agent decisions are stored in `agent_decisions` for traceability.
