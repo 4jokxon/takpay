@@ -74,7 +74,7 @@ export default function Home() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <ConnectWalletButton className="shadow-[0_0_50px_#34d39944]" />
-            <Link href="/pay/TK-1001" className="rounded-full border border-white/10 bg-white/5 px-6 py-3 font-semibold text-white transition hover:bg-white/10">View Demo Checkout</Link>
+            <Link href="/demo" className="rounded-full border border-white/10 bg-white/5 px-6 py-3 font-semibold text-white transition hover:bg-white/10">View Demo Checkout</Link>
           </div>
         </div>
 
@@ -150,7 +150,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-6 text-sm text-zinc-500">
             <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
-            <Link href="/pay/TK-1001" className="hover:text-white">Demo</Link>
+            <Link href="/demo" className="hover:text-white">Demo</Link>
             <a href="https://github.com/4jokxon/takpay" target="_blank" rel="noopener" className="hover:text-white">GitHub</a>
           </div>
         </div>

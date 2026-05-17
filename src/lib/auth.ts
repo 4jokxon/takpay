@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getSupabaseServer } from "@/lib/supabase";
 import { verifyMessage } from "viem";
 

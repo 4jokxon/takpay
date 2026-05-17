@@ -49,6 +49,28 @@ export default function Dashboard() {
   const [previewExpiry, setPreviewExpiry] = useState("24");
 
   useEffect(() => {
+    async function loadInvoices(wallet: string) {
+      const res = await fetch(`/api/invoices/list`, {
+        headers: { "x-wallet-address": wallet },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInvoices(data.invoices || []);
+      }
+      setLoading(false);
+    }
+
+    async function loadInvoicesByMerchantId(id: string) {
+      const supabase = getSupabaseBrowser();
+      const { data } = await supabase.from("invoices")
+        .select("id, amount, currency, memo, recipient, status, expires_at")
+        .eq("merchant_id", id)
+        .order("created_at", { ascending: false })
+        .limit(25) as { data: Invoice[] | null };
+      setInvoices(data ?? []);
+      setLoading(false);
+    }
+
     async function init() {
       if (isConnected && walletAddress) {
         setLoading(true);
@@ -75,10 +97,10 @@ export default function Dashboard() {
         setLoading(true);
         setUserEmail(user.email || "");
         setAuthMode("email");
-        const { data } = await (supabase.from("merchants") as any)
+        const { data } = await supabase.from("merchants")
           .select("id, wallet_address")
           .eq("id", user.id)
-          .single();
+          .single() as { data: { id: string; wallet_address: string | null } | null };
         if (data) {
           setMerchantId(data.id);
           setMerchantWallet(data.wallet_address || "");
@@ -90,30 +112,8 @@ export default function Dashboard() {
       setLoading(false);
     }
 
-    init();
+    void init();
   }, [isConnected, walletAddress]);
-
-  async function loadInvoices(wallet: string) {
-    const res = await fetch(`/api/invoices/list`, {
-      headers: { "x-wallet-address": wallet },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setInvoices(data.invoices || []);
-    }
-    setLoading(false);
-  }
-
-  async function loadInvoicesByMerchantId(id: string) {
-    const supabase = getSupabaseBrowser();
-    const { data } = await (supabase.from("invoices") as any)
-      .select("id, amount, currency, memo, recipient, status, expires_at")
-      .eq("merchant_id", id)
-      .order("created_at", { ascending: false })
-      .limit(25);
-    setInvoices(data ?? []);
-    setLoading(false);
-  }
 
   async function handleCreateInvoice(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

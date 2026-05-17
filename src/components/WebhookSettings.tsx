@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 export function WebhookSettings({ merchantId, currentUrl, walletAddress }: { merchantId: string; currentUrl?: string; walletAddress: string }) {
+  void merchantId;
   const [url, setUrl] = useState(currentUrl || "");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");

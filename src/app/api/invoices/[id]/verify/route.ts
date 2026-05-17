@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getInvoice, markInvoiceSubmitted, markInvoicePaid } from "@/lib/db-invoices";
+import { getInvoice, markInvoiceSubmitted } from "@/lib/db-invoices";
 import { ARC_TESTNET, ARC_USDC } from "@/lib/invoices";
 import { sendWebhook } from "@/lib/webhook";
 import { getSupabaseServer } from "@/lib/supabase";

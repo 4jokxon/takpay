@@ -99,7 +99,7 @@ export default function AgentDashboard() {
   const [totals, setTotals] = useState<Totals>({ totalDecisions: 0, fraudFlags: 0, autoApprovals: 0, autoRejections: 0 });
   const [decisions, setDecisions] = useState<AgentDecision[]>([]);
   const [refunds, setRefunds] = useState<RefundRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<"overview" | "decisions" | "refunds" | "new_refund">("overview");
   const [refundInvoiceId, setRefundInvoiceId] = useState("");
   const [refundReason, setRefundReason] = useState("");
@@ -118,11 +118,11 @@ export default function AgentDashboard() {
 
   useEffect(() => {
     if (!isConnected || !walletAddress) {
-      setLoading(false);
       return;
     }
 
     async function loadMetrics() {
+      setLoading(true);
       try {
         const res = await fetch("/api/agent/metrics", {
           headers: { "x-wallet-address": walletAddress! },
@@ -139,7 +139,7 @@ export default function AgentDashboard() {
       setLoading(false);
     }
 
-    loadMetrics();
+    void loadMetrics();
   }, [isConnected, walletAddress]);
 
   if (!isConnected) {
@@ -389,7 +389,7 @@ export default function AgentDashboard() {
                   amount={activeRefundForBridge.amount}
                   currency={activeRefundForBridge.currency}
                   invoiceId={activeRefundForBridge.invoiceId}
-                  onComplete={(txHash) => {
+                  onComplete={() => {
                     setActiveRefundForBridge(null);
                     // Reload metrics
                     window.location.reload();
@@ -450,7 +450,7 @@ export default function AgentDashboard() {
                       setRefundResult(null);
                       alert(data.error || "Failed to submit refund");
                     }
-                  } catch (err) {
+                  } catch {
                     alert("Network error");
                   }
                   setRefundSubmitting(false);

@@ -5,15 +5,6 @@ import { useAppKitAccount } from "@reown/appkit/react";
 import { BridgeKit, ArcTestnet, EthereumSepolia, BaseSepolia, ArbitrumSepolia, PolygonAmoy, TransferSpeed } from "@circle-fin/bridge-kit";
 import { useWalletClient } from "wagmi";
 
-// Map chain keys to BridgeKit chain objects
-const CHAIN_MAP = {
-  arc: ArcTestnet,
-  ethereum_sepolia: EthereumSepolia,
-  base_sepolia: BaseSepolia,
-  arbitrum_sepolia: ArbitrumSepolia,
-  polygon_amoy: PolygonAmoy,
-} as const;
-
 const CHAIN_LABELS: Record<string, string> = {
   arc: "Arc Testnet",
   ethereum_sepolia: "Ethereum Sepolia",
@@ -21,6 +12,8 @@ const CHAIN_LABELS: Record<string, string> = {
   arbitrum_sepolia: "Arbitrum Sepolia",
   polygon_amoy: "Polygon Amoy",
 };
+
+const SUPPORTED_CHAINS = [ArcTestnet, EthereumSepolia, BaseSepolia, ArbitrumSepolia, PolygonAmoy] as const;
 
 type BridgeStatus = "idle" | "preparing" | "signing" | "bridging" | "completed" | "failed";
 
@@ -128,6 +121,7 @@ export function CrossChainRefund({
       setStatusMessage("Initializing cross-chain bridge...");
 
       const kit = new BridgeKit();
+      void SUPPORTED_CHAINS;
 
       // Create a viem-based adapter for the source chain
       const sourceAdapter = {
